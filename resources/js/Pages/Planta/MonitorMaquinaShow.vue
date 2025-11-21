@@ -474,13 +474,14 @@ const gestionarIntervaloSimulacion = () => {
 
 const simularProduccion = () => {
     // Calcular valores aleatorios dentro de rangos configurados
-    const oee = parseFloat(
+    let oee = parseFloat(
         (
             Math.random() *
                 (simulacion.config.oeeMax - simulacion.config.oeeMin) +
             simulacion.config.oeeMin
         ).toFixed(2)
     );
+    if (oee > 100) oee = 100.0;
     const velocidad = parseFloat(
         (
             Math.random() *
