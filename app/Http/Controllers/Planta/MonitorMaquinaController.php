@@ -50,11 +50,21 @@ class MonitorMaquinaController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Get the current state of a machine for API polling.
      */
     public function getEstado(Maquina $maquina)
     {
-        return $maquina->estadoVivo;
+        $estado = $maquina->estadoVivo;
+
+        if (!$estado) {
+            return response()->json(null);
+        }
+
+        return response()->json([
+            'kg_producidos' => $estado->kg_producidos,
+            'oee_actual' => $estado->oee_actual,
+            'velocidad_actual' => $estado->velocidad_actual,
+        ]);
     }
 
     /**
