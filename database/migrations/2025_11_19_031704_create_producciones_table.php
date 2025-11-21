@@ -25,6 +25,8 @@ return new class extends Migration
             $table->decimal('cantidad_producida_kg', 12, 3)->default(0);
             $table->enum('estado', ['Planificada', 'EnCurso', 'Finalizada', 'Cancelada', 'Pausada'])->default('Planificada');
             $table->text('observaciones')->nullable();
+            $table->decimal('oee_actual', 5, 2)->nullable();
+            $table->decimal('velocidad_actual', 8, 2)->nullable();
             $table->timestamps();
         });
     }

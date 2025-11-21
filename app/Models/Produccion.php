@@ -6,10 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Produccion extends Model
 {
+    protected $table = 'producciones';
+
     protected $fillable = [
         'numero_orden', 'maquina_id', 'operador_id', 'encargado_id',
         'receta_id', 'fecha_inicio', 'fecha_fin', 'turno',
         'cantidad_objetivo_kg', 'cantidad_producida_kg', 'estado', 'observaciones',
+        'oee_actual', 'velocidad_actual',
     ];
 
     protected $casts = [
