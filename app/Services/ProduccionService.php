@@ -13,9 +13,9 @@ use Illuminate\Support\Facades\DB;
 
 class ProduccionService implements ProduccionServiceInterface
 {
-    public function registrarProduccion(int $maquinaId, float $kgIncremento, float $oee, float $velocidad, ?Carbon $fechaProduccion = null): array
+    public function registrarProduccion(int $maquinaId, float $kgIncremento, float $oee, float $velocidad, ?Carbon $fechaProduccion = null, bool $isLastRegister = false): array
     {
-        return DB::transaction(function () use ($maquinaId, $kgIncremento, $oee, $velocidad, $fechaProduccion) {
+        return DB::transaction(function () use ($maquinaId, $kgIncremento, $oee, $velocidad, $fechaProduccion, $isLastRegister) {
             $fechaProduccion = $fechaProduccion ?? now();
             $turno = $this->determinarTurno($fechaProduccion);
             $maquina = Maquina::findOrFail($maquinaId);
@@ -33,6 +33,12 @@ class ProduccionService implements ProduccionServiceInterface
 
             // IMPORTANTE: Buscar producción activa del turno actual
             // No crear una nueva cada vez, sino actualizar la existente
+            $uuid = Produccion::where('maquina_id', $maquinaId)
+                ->where('turno', $turno)
+                ->where('estado', 'EnCurso')
+                ->latest()
+                ->value('id') ?? 0;
+            $uuid = ((int) $uuid) + 1;
             $produccion = Produccion::firstOrCreate(
                 [
                     'maquina_id' => $maquinaId,
@@ -41,7 +47,7 @@ class ProduccionService implements ProduccionServiceInterface
                 ],
                 [
                     // Datos iniciales si se crea nueva
-                    'numero_orden' => 'ORD-'.$fechaProduccion->format('Ymd').'-'.$maquinaId.'-'.$turno,
+                    'numero_orden' => 'ORD-'.$fechaProduccion->format('Ymd').'-'.$maquinaId.'-'.$turno.'-'.$uuid,
                     'operador_id' => \App\Models\User::first()?->id,
                     'receta_id' => \App\Models\Receta::first()?->id,
                     'cantidad_producida_kg' => 0,
@@ -58,6 +64,10 @@ class ProduccionService implements ProduccionServiceInterface
             $produccion->oee_actual = $oee;
             $produccion->velocidad_actual = $velocidad;
             $produccion->fecha_fin = $fechaProduccion; // Actualizar última actividad
+
+            if ($isLastRegister) {
+                $produccion->estado = 'Finalizada';
+            }
 
             $produccion->save();
 

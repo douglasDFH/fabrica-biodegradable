@@ -49,6 +49,7 @@ class MaquinaEstadoController extends Controller
             'estado' => $estado->load('maquina'),
         ]);
     }
+
     /**
      * Actualizar configuración de simulación
      */

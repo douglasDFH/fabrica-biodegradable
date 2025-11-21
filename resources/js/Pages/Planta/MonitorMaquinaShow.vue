@@ -416,6 +416,25 @@ const guardarCola = () => {
 const cambiarEstado = async (nuevoEstado) => {
     if (simulacion.estado === nuevoEstado) return;
 
+    // Si cambiamos a un estado de detención (Parada, Mantenimiento),
+    // enviamos un último registro para cerrar la producción
+    if (
+        ["Parada", "Mantenimiento"].includes(nuevoEstado) &&
+        simulacion.estado === "Produciendo"
+    ) {
+        const ultimaProduccion = {
+            maquina_id: maquina.id,
+            kg_incremento: 0, // No incrementamos, solo cerramos
+            oee: simulacion.config.oeeMin, // Usamos el mínimo o el último valor real
+            velocidad: 0,
+            timestamp_generacion: Date.now(),
+            is_last_register: true,
+        };
+        colaProduccion.value.push(ultimaProduccion);
+        guardarCola();
+        if (isOnline.value) enviarColaProduccion();
+    }
+
     simulacion.estado = nuevoEstado;
     tiempoInicioEstado.value = Date.now();
 

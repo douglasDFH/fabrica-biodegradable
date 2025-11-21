@@ -26,6 +26,7 @@ class SimulacionController extends Controller
                 'producciones.*.oee' => 'required|numeric|min:0|max:100',
                 'producciones.*.velocidad' => 'required|numeric|min:0|max:9999.99',
                 'producciones.*.timestamp_generacion' => 'nullable|numeric',
+                'producciones.*.is_last_register' => 'nullable|boolean',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Errores de validación:', $e->errors());
@@ -41,12 +42,15 @@ class SimulacionController extends Controller
                 ? \Carbon\Carbon::createFromTimestampMs($prod['timestamp_generacion'])
                 : now();
 
+            $isLastRegister = $prod['is_last_register'] ?? false;
+
             $resultado = $this->produccionService->registrarProduccion(
                 $prod['maquina_id'],
                 $prod['kg_incremento'],
                 $prod['oee'],
                 $prod['velocidad'],
-                $fechaProduccion
+                $fechaProduccion,
+                $isLastRegister
             );
             $resultados[] = $resultado;
         }
