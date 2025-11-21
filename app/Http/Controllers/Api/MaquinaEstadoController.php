@@ -49,4 +49,24 @@ class MaquinaEstadoController extends Controller
             'estado' => $estado->load('maquina'),
         ]);
     }
+    /**
+     * Actualizar configuración de simulación
+     */
+    public function updateSimulacion(Request $request, Maquina $maquina)
+    {
+        $validated = $request->validate([
+            'simulacion_activa' => 'boolean',
+            'velocidad_simulacion' => 'numeric|min:0',
+            'intervalo_simulacion' => 'integer|min:1',
+            'oee_min' => 'numeric|min:0|max:100',
+            'oee_max' => 'numeric|min:0|max:100',
+            'velocidad_min' => 'numeric|min:0',
+            'velocidad_max' => 'numeric|min:0',
+        ]);
+
+        $estado = MaquinaEstadoVivo::firstOrCreate(['maquina_id' => $maquina->id]);
+        $estado->update($validated);
+
+        return response()->json(['success' => true, 'estado' => $estado]);
+    }
 }

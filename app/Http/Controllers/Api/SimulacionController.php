@@ -18,15 +18,14 @@ class SimulacionController extends Controller
 
     public function simularProduccion(Request $request)
     {
-        Log::info('Datos recibidos en simularProduccion:', $request->all());
-
         try {
             $request->validate([
                 'producciones' => 'required|array',
                 'producciones.*.maquina_id' => 'required|integer|exists:maquinas,id',
-                'producciones.*.kg_incremento' => 'required|numeric|min:0',
+                'producciones.*.kg_incremento' => 'required|numeric|min:0|max:9999.99',
                 'producciones.*.oee' => 'required|numeric|min:0|max:100',
-                'producciones.*.velocidad' => 'required|numeric|min:0',
+                'producciones.*.velocidad' => 'required|numeric|min:0|max:9999.99',
+                'producciones.*.timestamp_generacion' => 'nullable|numeric',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Errores de validación:', $e->errors());
@@ -37,11 +36,17 @@ class SimulacionController extends Controller
         $resultados = [];
 
         foreach ($request->producciones as $prod) {
+            // Usar timestamp_generacion si existe, sino usar now()
+            $fechaProduccion = isset($prod['timestamp_generacion'])
+                ? \Carbon\Carbon::createFromTimestampMs($prod['timestamp_generacion'])
+                : now();
+
             $resultado = $this->produccionService->registrarProduccion(
                 $prod['maquina_id'],
                 $prod['kg_incremento'],
                 $prod['oee'],
-                $prod['velocidad']
+                $prod['velocidad'],
+                $fechaProduccion
             );
             $resultados[] = $resultado;
         }

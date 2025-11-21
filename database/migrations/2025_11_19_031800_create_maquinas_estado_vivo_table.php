@@ -25,6 +25,16 @@ return new class extends Migration
             $table->decimal('oee_actual', 5, 2)->default(0);
             $table->enum('estado', ['Produciendo', 'Pausada', 'Parada', 'Offline', 'Corriendo', 'Alarma', 'Mantenimiento'])->default('Parada');
             $table->dateTime('ultima_actualizacion')->useCurrent()->useCurrentOnUpdate();
+            
+            // Campos de configuración de simulación
+            $table->boolean('simulacion_activa')->default(false);
+            $table->decimal('velocidad_simulacion', 10, 2)->default(10.0); // kg/min
+            $table->integer('intervalo_simulacion')->default(5); // segundos
+            $table->decimal('oee_min', 5, 2)->default(80.0);
+            $table->decimal('oee_max', 5, 2)->default(100.0);
+            $table->decimal('velocidad_min', 5, 2)->default(80.0);
+            $table->decimal('velocidad_max', 5, 2)->default(100.0);
+            
             $table->timestamps();
         });
     }

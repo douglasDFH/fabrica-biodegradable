@@ -13,9 +13,11 @@ use Illuminate\Support\Facades\DB;
 
 class ProduccionService implements ProduccionServiceInterface
 {
-    public function registrarProduccion(int $maquinaId, float $kgIncremento, float $oee, float $velocidad): array
+    public function registrarProduccion(int $maquinaId, float $kgIncremento, float $oee, float $velocidad, ?Carbon $fechaProduccion = null): array
     {
-        return DB::transaction(function () use ($maquinaId, $kgIncremento, $oee, $velocidad) {
+        return DB::transaction(function () use ($maquinaId, $kgIncremento, $oee, $velocidad, $fechaProduccion) {
+            $fechaProduccion = $fechaProduccion ?? now();
+            $turno = $this->determinarTurno($fechaProduccion);
             $maquina = Maquina::findOrFail($maquinaId);
 
             // Obtener o crear estado vivo
@@ -29,29 +31,45 @@ class ProduccionService implements ProduccionServiceInterface
                 ]
             );
 
-            // Actualizar estado
+            // IMPORTANTE: Buscar producción activa del turno actual
+            // No crear una nueva cada vez, sino actualizar la existente
+            $produccion = Produccion::firstOrCreate(
+                [
+                    'maquina_id' => $maquinaId,
+                    'turno' => $turno,
+                    'estado' => 'EnCurso', // Solo producciones activas
+                ],
+                [
+                    // Datos iniciales si se crea nueva
+                    'numero_orden' => 'ORD-'.$fechaProduccion->format('Ymd').'-'.$maquinaId.'-'.$turno,
+                    'operador_id' => \App\Models\User::first()?->id,
+                    'receta_id' => \App\Models\Receta::first()?->id,
+                    'cantidad_producida_kg' => 0,
+                    'fecha_inicio' => $fechaProduccion,
+                    'oee_actual' => $oee,
+                    'velocidad_actual' => $velocidad,
+                ]
+            );
+
+            // Incrementar cantidad producida
+            $produccion->cantidad_producida_kg += $kgIncremento;
+
+            // Actualizar métricas (promedio móvil o última lectura)
+            $produccion->oee_actual = $oee;
+            $produccion->velocidad_actual = $velocidad;
+            $produccion->fecha_fin = $fechaProduccion; // Actualizar última actividad
+
+            $produccion->save();
+
+            // Actualizar estado vivo de la máquina
             $estado->kg_producidos += $kgIncremento;
             $estado->oee_actual = $oee;
             $estado->velocidad_actual = $velocidad;
+            $estado->produccion_id = $produccion->id;
             $estado->save();
 
             // Emitir evento para broadcasting del estado de máquina
             event(new EstadoActualizado($estado));
-
-            // Crear registro de producción
-            $produccion = Produccion::create([
-                'numero_orden' => 'SIM-'.(int) (microtime(true) * 1000000).'-'.$maquinaId,
-                'maquina_id' => $maquinaId,
-                'operador_id' => \App\Models\User::first()?->id,
-                'receta_id' => \App\Models\Receta::first()?->id,
-                'cantidad_producida_kg' => $kgIncremento,
-                'oee_actual' => $oee,
-                'velocidad_actual' => $velocidad,
-                'estado' => 'Finalizada',
-                'fecha_inicio' => now(),
-                'fecha_fin' => now(),
-                'turno' => $this->determinarTurno(),
-            ]);
 
             // Emitir evento para broadcasting
             event(new Registrada($produccion, $estado));
@@ -62,6 +80,7 @@ class ProduccionService implements ProduccionServiceInterface
                 'oee_actual' => $estado->oee_actual,
                 'velocidad_actual' => $estado->velocidad_actual,
                 'estado' => 'actualizado',
+                'produccion_id' => $produccion->id,
             ];
         });
     }
@@ -100,16 +119,17 @@ class ProduccionService implements ProduccionServiceInterface
             ->toArray();
     }
 
-    private function determinarTurno(): string
+    private function determinarTurno(?Carbon $fecha = null): string
     {
-        $hora = now()->hour;
+        $fecha = $fecha ?? now();
+        $hora = $fecha->hour;
 
         if ($hora >= 6 && $hora < 14) {
-            return 'Diurno';
+            return 'Mañana';
         } elseif ($hora >= 14 && $hora < 22) {
-            return 'Vespertino';
+            return 'Tarde';
         } else {
-            return 'Nocturno';
+            return 'Noche';
         }
     }
 }

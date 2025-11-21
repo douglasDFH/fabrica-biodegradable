@@ -13,3 +13,4 @@ Route::get('/user', function (Request $request) {
 Route::post('/simular-produccion', [SimulacionController::class, 'simularProduccion']);
 Route::get('/maquina/{maquina}/estado', [MonitorMaquinaController::class, 'getEstado']);
 Route::put('/maquina/{maquina}/estado', [MaquinaEstadoController::class, 'updateEstado']);
+Route::put('/maquina/{maquina}/simulacion', [MaquinaEstadoController::class, 'updateSimulacion']);
