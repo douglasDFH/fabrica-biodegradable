@@ -23,7 +23,7 @@ return new class extends Migration
             $table->decimal('tiempo_ciclo_actual', 8, 3)->default(0);
             $table->decimal('tiempo_ciclo_teorico', 8, 3)->default(0);
             $table->decimal('oee_actual', 5, 2)->default(0);
-            $table->enum('estado', ['Parada', 'Corriendo', 'Alarma', 'Mantenimiento'])->default('Parada');
+            $table->enum('estado', ['Produciendo', 'Pausada', 'Parada', 'Offline', 'Corriendo', 'Alarma', 'Mantenimiento'])->default('Parada');
             $table->dateTime('ultima_actualizacion')->useCurrent()->useCurrentOnUpdate();
             $table->timestamps();
         });

@@ -6,7 +6,6 @@ use App\Services\Contracts\ProduccionServiceInterface;
 use App\Services\ProduccionService;
 use Illuminate\Support\ServiceProvider;
 
-
 class AppServiceProvider extends ServiceProvider
 {
     /**

@@ -103,12 +103,34 @@ onUnmounted(() => {
   if (simulacion.intervalo) {
     clearInterval(simulacion.intervalo);
   }
+  // Dejar de escuchar el canal dashboard
+  if (window.Echo) {
+    window.Echo.leave('dashboard');
+  }
 });
 
-const play = () => {
+const actualizarEstadoMaquina = async (nuevoEstado) => {
+  try {
+    const response = await axios.put(`/api/maquina/${maquina.id}/estado`, {
+      estado: nuevoEstado
+    });
+    
+    if (response.data.success) {
+      console.log('Estado actualizado:', response.data.estado);
+    }
+  } catch (error) {
+    console.error('Error actualizando estado:', error);
+  }
+};
+
+const play = async () => {
   if (simulacion.estado === 'playing') return;
 
   simulacion.estado = 'playing';
+  
+  // Actualizar estado en el servidor
+  await actualizarEstadoMaquina('Produciendo');
+  
   simulacion.intervalo = setInterval(() => {
     if (simulacion.estado === 'playing') {
       simularProduccion();
@@ -116,16 +138,24 @@ const play = () => {
   }, 5000); // Simular cada 5 segundos
 };
 
-const pause = () => {
+const pause = async () => {
   simulacion.estado = 'paused';
+  
+  // Actualizar estado en el servidor
+  await actualizarEstadoMaquina('Pausada');
+  
   if (simulacion.intervalo) {
     clearInterval(simulacion.intervalo);
     simulacion.intervalo = null;
   }
 };
 
-const stop = () => {
+const stop = async () => {
   simulacion.estado = 'stopped';
+  
+  // Actualizar estado en el servidor
+  await actualizarEstadoMaquina('Parada');
+  
   if (simulacion.intervalo) {
     clearInterval(simulacion.intervalo);
     simulacion.intervalo = null;
@@ -171,7 +201,6 @@ const enviarColaProduccion = async () => {
     });
 
     if (response.data.success) {
-      console.log('Producciones enviadas:', response.data.resultados);
       // Remover solo las producciones válidas enviadas
       colaProduccion.value = colaProduccion.value.filter(prod =>
         !produccionesValidas.includes(prod)
@@ -184,15 +213,24 @@ const enviarColaProduccion = async () => {
 };
 
 onMounted(() => {
-  console.log('Iniciando polling para maquina ' + maquina.id);
-  setInterval(() => {
-    fetch(`/api/maquina/${maquina.id}/estado`)
-      .then(response => response.json())
-      .then(data => {
-        maquina.estado_vivo = data;
+  console.log('Iniciando monitor para maquina ' + maquina.id);
+  
+  // Escuchar actualizaciones en tiempo real desde el canal dashboard
+  if (window.Echo) {
+    window.Echo.channel('dashboard')
+      .listen('.maquina.estado.actualizado', (e) => {
+        // Solo actualizar si es para esta máquina
+        if (e.estado && e.estado.maquina_id === maquina.id) {
+          maquina.estado_vivo = e.estado;
+        }
       })
-      .catch(error => console.error('Error fetching estado:', error));
-  }, 1000);
+      .listen('.produccion.registrada', (e) => {
+        // Actualizar estado si es para esta máquina
+        if (e.estado && e.estado.maquina_id === maquina.id) {
+          maquina.estado_vivo = e.estado;
+        }
+      });
+  }
 
   // Intentar enviar cola al cargar si está online
   if (isOnline.value) {
@@ -207,18 +245,6 @@ import { Head } from '@inertiajs/vue3';
 export default {
   components: {
     Head,
-  },
-  mounted() {
-    // Escuchar actualizaciones en tiempo real de la máquina
-    window.Echo.channel(`maquina.${this.maquina.id}`)
-      .listen('.estado.actualizado', (e) => {
-        console.log('Estado recibido:', e.estado);
-        this.maquina.estado_vivo = e.estado;
-      });
-  },
-  beforeUnmount() {
-    // Dejar de escuchar cuando se desmonte el componente
-    window.Echo.leaveChannel(`maquina.${this.maquina.id}`);
   },
 };
 </script>

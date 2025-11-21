@@ -6,15 +6,25 @@
         <div class="mb-8">
           <h1 class="text-4xl font-bold text-gray-900 mb-2">🏭 Dashboard de Producción</h1>
           <p class="text-gray-600">Monitoreo en tiempo real de la fábrica biodegradable</p>
-          <div class="mt-2 text-sm text-gray-500">
-            Última actualización: {{ ultimaActualizacion }}
+          <div class="mt-2 flex items-center gap-4">
+            <div class="text-sm text-gray-500">
+              Última actualización: {{ ultimaActualizacion }}
+            </div>
+            <div v-if="wsConnected" class="flex items-center text-sm text-green-600">
+              <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+              WebSocket conectado
+            </div>
+            <div v-else class="flex items-center text-sm text-red-600">
+              <span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+              WebSocket desconectado
+            </div>
           </div>
         </div>
 
         <!-- Loading State -->
         <div v-if="loading" class="text-center py-12">
           <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p class="mt-4 text-gray-600">Cargando datos...</p>
+          <p class="mt-4 text-gray-600">Cargando datos en tiempo real...</p>
         </div>
 
         <!-- Error State -->
@@ -28,6 +38,9 @@
             <div class="ml-3">
               <h3 class="text-sm font-medium text-red-800">Error al cargar datos</h3>
               <div class="mt-2 text-sm text-red-700">{{ error }}</div>
+              <button @click="reconnectWebSocket" class="mt-3 text-sm font-medium text-red-800 hover:text-red-900">
+                Reintentar conexión
+              </button>
             </div>
           </div>
         </div>
@@ -39,7 +52,7 @@
             <!-- Total KG -->
             <MetricCard
               title="Total KG Producidos"
-              :value="formatNumber(reactiveEstadisticas?.total_kg)"
+              :value="formatNumber(estadisticas.total_kg)"
               border-class="border-green-500"
               icon-bg-class="bg-green-100"
             >
@@ -53,7 +66,7 @@
             <!-- Total Producciones -->
             <MetricCard
               title="Total Producciones"
-              :value="reactiveEstadisticas?.total_producciones || 0"
+              :value="estadisticas.total_producciones || 0"
               border-class="border-blue-500"
               icon-bg-class="bg-blue-100"
             >
@@ -67,7 +80,7 @@
             <!-- Máquinas Activas -->
             <MetricCard
               title="Máquinas Activas"
-              :value="reactiveEstadisticas?.maquinas_activas || 0"
+              :value="estadisticas.maquinas_activas || 0"
               border-class="border-purple-500"
               icon-bg-class="bg-purple-100"
             >
@@ -81,7 +94,7 @@
             <!-- OEE Promedio -->
             <MetricCard
               title="OEE Promedio"
-              :value="formatOEE(reactiveEstadisticas?.oee_promedio)"
+              :value="formatOEE(estadisticas.oee_promedio)"
               border-class="border-yellow-500"
               icon-bg-class="bg-yellow-100"
             >
@@ -94,10 +107,10 @@
           </div>
 
           <!-- Producción por Máquina -->
-          <ProductionByMachine :produccion-por-maquina="reactiveProduccionPorMaquina" />
+          <ProductionByMachine :produccion-por-maquina="produccionPorMaquina" />
 
           <!-- Estados de Máquinas en Tiempo Real -->
-          <MachineStates :estados-maquinas="reactiveEstadosMaquinas" />
+          <MachineStates :estados-maquinas="estadosMaquinas" />
         </div>
       </div>
     </div>
@@ -115,234 +128,178 @@ export default {
     ProductionByMachine,
     MachineStates
   },
-  props: {
-    estadisticas: {
-      type: Object,
-      default: () => ({})
-    },
-    produccionPorMaquina: {
-      type: Array,
-      default: () => []
-    },
-    estadosMaquinas: {
-      type: Array,
-      default: () => []
-    },
-  },
 
   data() {
     return {
-      loading: false,
+      loading: true,
       error: null,
-      ultimaActualizacion: new Date().toLocaleString('es-ES'),
-      echoListeners: [],
-      // Copias reactivas de las props
-      reactiveEstadisticas: {},
-      reactiveProduccionPorMaquina: [],
-      reactiveEstadosMaquinas: []
+      wsConnected: false,
+      ultimaActualizacion: 'Esperando datos...',
+      
+      // Datos del dashboard
+      estadisticas: {
+        total_kg: 0,
+        total_producciones: 0,
+        maquinas_activas: 0,
+        oee_promedio: 0
+      },
+      produccionPorMaquina: [],
+      estadosMaquinas: [],
+      
+      // Referencias de Echo
+      dashboardChannel: null,
+      reconnectAttempts: 0,
+      maxReconnectAttempts: 5
     }
   },
 
   mounted() {
-    console.log('Dashboard Vue mounted correctamente');
-    console.log('Datos iniciales:', {
-      estadisticas: this.estadisticas,
-      produccionPorMaquina: this.produccionPorMaquina,
-      estadosMaquinas: this.estadosMaquinas
-    });
-
-    // Copiar props a estado reactivo
-    this.reactiveEstadisticas = { ...this.estadisticas };
-    this.reactiveProduccionPorMaquina = [...this.produccionPorMaquina];
-    this.reactiveEstadosMaquinas = [...this.estadosMaquinas];
-
-    this.setupWebSocketListeners();
+    console.log('Dashboard Vue mounted - Modo SPA en tiempo real');
+    this.setupWebSocketConnection();
   },
 
   beforeUnmount() {
-    this.cleanupWebSocketListeners();
+    this.cleanupWebSocketConnection();
   },
 
   methods: {
-    setupWebSocketListeners() {
+    setupWebSocketConnection() {
       if (typeof window.Echo === 'undefined') {
-        console.warn('Echo no está disponible, omitiendo listeners de WebSocket');
+        this.error = 'WebSocket no está disponible. Por favor, verifica la configuración.';
+        this.loading = false;
         return;
       }
 
       try {
-        // Listener para nuevas producciones
-        const produccionListener = window.Echo.channel('produccion')
-          .listen('.produccion.registrada', (e) => {
-            console.log('Nueva producción registrada via WS:', e);
-            this.actualizarDesdeEventoProduccion(e);
-          });
-
-        // Listener para cambios de estado de máquinas
-        const maquinaListener = window.Echo.channel('maquina-estado')
-          .listen('.maquina.estado.actualizado', (e) => {
-            console.log('Estado de máquina actualizado via WS:', e);
-            this.actualizarDesdeEventoMaquina(e);
-          });
-
-        this.echoListeners = [produccionListener, maquinaListener];
-        console.log('WebSocket listeners configurados correctamente');
-      } catch (error) {
-        console.error('Error configurando WebSocket listeners:', error);
-      }
-    },
-
-    cleanupWebSocketListeners() {
-      this.echoListeners.forEach(listener => {
-        if (listener && typeof listener.stopListening === 'function') {
-          listener.stopListening();
-        }
-      });
-      this.echoListeners = [];
-    },
-
-    async actualizarDatos() {
-      try {
-        this.loading = true;
-        this.error = null;
-
-        // Hacer petición AJAX para obtener datos actualizados
-        const response = await fetch('/dashboard-data', {
-          method: 'GET',
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json',
-          },
+        console.log('Conectando al canal dashboard...');
+        
+        // Suscribirse al canal dashboard
+        this.dashboardChannel = window.Echo.channel('dashboard');
+        
+        // Listener para producción registrada
+        this.dashboardChannel.listen('.produccion.registrada', (data) => {
+          console.log('📦 Producción registrada:', data);
+          this.handleProduccionRegistrada(data);
+        });
+        
+        // Listener para estado de máquina actualizado
+        this.dashboardChannel.listen('.maquina.estado.actualizado', (data) => {
+          console.log('⚙️ Estado de máquina actualizado:', data);
+          this.handleMaquinaEstadoActualizado(data);
         });
 
-        if (!response.ok) {
-          throw new Error('Error al obtener datos actualizados');
-        }
-
-        const data = await response.json();
-
-        // Actualizar datos reactivamente
-        this.reactiveEstadisticas = data.estadisticas || {};
-        this.reactiveProduccionPorMaquina = data.produccionPorMaquina || [];
-        this.reactiveEstadosMaquinas = data.estadosMaquinas || [];
-
-        // Actualizar timestamp de última actualización
-        this.ultimaActualizacion = new Date().toLocaleString('es-ES');
-
-        console.log('Datos actualizados via AJAX:', data);
-
-      } catch (err) {
-        console.error('Error actualizando datos:', err);
-        this.error = 'Error al actualizar los datos';
-      } finally {
+        // Marcar como conectado
+        this.wsConnected = true;
         this.loading = false;
+        this.reconnectAttempts = 0;
+        
+        console.log('✅ WebSocket conectado correctamente al canal dashboard');
+        
+      } catch (error) {
+        console.error('❌ Error configurando WebSocket:', error);
+        this.error = 'Error al conectar con WebSocket: ' + error.message;
+        this.loading = false;
+        this.wsConnected = false;
+        
+        // Intentar reconectar
+        this.scheduleReconnect();
       }
     },
 
-    actualizarDesdeEventoProduccion(evento) {
+    cleanupWebSocketConnection() {
+      if (this.dashboardChannel) {
+        console.log('Desconectando del canal dashboard...');
+        window.Echo.leave('dashboard');
+        this.dashboardChannel = null;
+      }
+      this.wsConnected = false;
+    },
+
+    reconnectWebSocket() {
+      console.log('Intentando reconectar WebSocket...');
+      this.error = null;
+      this.loading = true;
+      this.cleanupWebSocketConnection();
+      this.setupWebSocketConnection();
+    },
+
+    scheduleReconnect() {
+      if (this.reconnectAttempts < this.maxReconnectAttempts) {
+        this.reconnectAttempts++;
+        const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+        
+        console.log(`Reintentando conexión en ${delay}ms (intento ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+        
+        setTimeout(() => {
+          this.reconnectWebSocket();
+        }, delay);
+      } else {
+        console.error('Máximo número de intentos de reconexión alcanzado');
+        this.error = 'No se pudo conectar al servidor WebSocket después de varios intentos.';
+      }
+    },
+
+    handleProduccionRegistrada(data) {
       try {
-        console.log('Actualizando desde evento producción:', evento);
+        // Actualizar estadísticas si vienen en el evento
+        if (data.estadisticas) {
+          this.estadisticas = { ...data.estadisticas };
+        }
 
-        // Actualizar estadísticas globales
-        if (evento.produccion) {
-          // Incrementar total KG
-          this.reactiveEstadisticas.total_kg = (this.reactiveEstadisticas.total_kg || 0) + (evento.produccion.cantidad_kg || 0);
+        // Actualizar producción por máquina si viene en el evento
+        if (data.produccionPorMaquina) {
+          this.produccionPorMaquina = [...data.produccionPorMaquina];
+        }
 
-          // Incrementar total producciones
-          this.reactiveEstadisticas.total_producciones = (this.reactiveEstadisticas.total_producciones || 0) + 1;
-
-          // Actualizar producción por máquina
-          this.actualizarProduccionPorMaquina(evento.produccion);
+        // Actualizar estado de máquina si viene en el evento
+        if (data.estado) {
+          this.actualizarEstadoMaquina(data.estado);
         }
 
         // Actualizar timestamp
         this.ultimaActualizacion = new Date().toLocaleString('es-ES');
-
+        
       } catch (error) {
-        console.error('Error procesando evento producción:', error);
+        console.error('Error procesando evento de producción:', error);
       }
     },
 
-    actualizarDesdeEventoMaquina(evento) {
+    handleMaquinaEstadoActualizado(data) {
       try {
-        console.log('Actualizando desde evento máquina:', evento);
+        // Actualizar estadísticas si vienen en el evento
+        if (data.estadisticas) {
+          this.estadisticas = { ...data.estadisticas };
+        }
 
-        if (evento.maquina && evento.estado) {
-          // Actualizar estado de la máquina específica
-          this.actualizarEstadoMaquina(evento.maquina, evento.estado);
+        // Actualizar producción por máquina si viene en el evento
+        if (data.produccionPorMaquina) {
+          this.produccionPorMaquina = [...data.produccionPorMaquina];
+        }
 
-          // Recalcular estadísticas que dependen de estados
-          this.recalcularEstadisticasMaquinas();
+        // Actualizar estado de máquina
+        if (data.estado) {
+          this.actualizarEstadoMaquina(data.estado);
         }
 
         // Actualizar timestamp
         this.ultimaActualizacion = new Date().toLocaleString('es-ES');
-
+        
       } catch (error) {
-        console.error('Error procesando evento máquina:', error);
+        console.error('Error procesando evento de máquina:', error);
       }
     },
 
-    actualizarProduccionPorMaquina(produccion) {
-      const maquinaId = produccion.maquina_id;
-      const cantidadKg = produccion.cantidad_kg || 0;
+    actualizarEstadoMaquina(nuevoEstado) {
+      const index = this.estadosMaquinas.findIndex(
+        e => e.maquina_id === nuevoEstado.maquina_id
+      );
 
-      // Buscar si ya existe la máquina en produccionPorMaquina
-      let maquinaProd = this.reactiveProduccionPorMaquina.find(p => p.maquina?.id === maquinaId);
-
-      if (maquinaProd) {
+      if (index !== -1) {
         // Actualizar existente
-        maquinaProd.total_kg = (maquinaProd.total_kg || 0) + cantidadKg;
-        maquinaProd.producciones = (maquinaProd.producciones || 0) + 1;
+        this.estadosMaquinas[index] = { ...nuevoEstado };
       } else {
-        // Agregar nueva
-        this.reactiveProduccionPorMaquina.push({
-          maquina: { id: maquinaId, nombre: produccion.maquina?.nombre || `Máquina ${maquinaId}` },
-          total_kg: cantidadKg,
-          producciones: 1
-        });
-      }
-    },
-
-    actualizarEstadoMaquina(maquina, estado) {
-      // Buscar la máquina en estadosMaquinas
-      let maquinaEstado = this.reactiveEstadosMaquinas.find(e => e.maquina?.id === maquina.id);
-
-      if (maquinaEstado) {
-        // Actualizar existente
-        Object.assign(maquinaEstado, {
-          estado: estado.estado,
-          oee_actual: estado.oee_actual,
-          velocidad_actual: estado.velocidad_actual,
-          kg_producidos: estado.kg_producidos,
-          updated_at: estado.updated_at || new Date().toISOString()
-        });
-      } else {
-        // Agregar nueva
-        this.reactiveEstadosMaquinas.push({
-          maquina: maquina,
-          estado: estado.estado,
-          oee_actual: estado.oee_actual,
-          velocidad_actual: estado.velocidad_actual,
-          kg_producidos: estado.kg_producidos,
-          updated_at: estado.updated_at || new Date().toISOString()
-        });
-      }
-    },
-
-    recalcularEstadisticasMaquinas() {
-      // Contar máquinas activas (operando)
-      this.reactiveEstadisticas.maquinas_activas = this.reactiveEstadosMaquinas.filter(e =>
-        e.estado === 'operando' || e.estado === 'Operando'
-      ).length;
-
-      // Calcular OEE promedio
-      const maquinasConOEE = this.reactiveEstadosMaquinas.filter(e => e.oee_actual != null);
-      if (maquinasConOEE.length > 0) {
-        const sumaOEE = maquinasConOEE.reduce((sum, e) => sum + (e.oee_actual || 0), 0);
-        this.reactiveEstadisticas.oee_promedio = sumaOEE / maquinasConOEE.length;
-      } else {
-        this.reactiveEstadisticas.oee_promedio = 0;
+        // Agregar nuevo
+        this.estadosMaquinas.push({ ...nuevoEstado });
       }
     },
 
@@ -356,51 +313,6 @@ export default {
       if (value === null || value === undefined) return '0.0%';
       const num = parseFloat(value);
       return isNaN(num) ? '0.0%' : num.toFixed(1) + '%';
-    },
-
-    formatTime(timestamp) {
-      if (!timestamp) return 'Nunca';
-      try {
-        return new Date(timestamp).toLocaleTimeString('es-ES', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        });
-      } catch (error) {
-        return 'Fecha inválida';
-      }
-    },
-
-    getEstadoClass(estado) {
-      switch (estado) {
-        case 'operando':
-        case 'Operando':
-          return 'bg-green-100 text-green-800';
-        case 'parada':
-        case 'Parada':
-          return 'bg-red-100 text-red-800';
-        case 'mantenimiento':
-        case 'Mantenimiento':
-          return 'bg-yellow-100 text-yellow-800';
-        default:
-          return 'bg-gray-100 text-gray-800';
-      }
-    },
-
-    getEstadoText(estado) {
-      switch (estado) {
-        case 'operando':
-        case 'Operando':
-          return 'Operando';
-        case 'parada':
-        case 'Parada':
-          return 'Parada';
-        case 'mantenimiento':
-        case 'Mantenimiento':
-          return 'Mantenimiento';
-        default:
-          return estado || 'Desconocido';
-      }
     }
   }
 };

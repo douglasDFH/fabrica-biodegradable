@@ -2,11 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Events\MaquinaEstadoActualizado;
 use App\Http\Controllers\Controller;
-use App\Models\Maquina;
-use App\Models\MaquinaEstadoVivo;
-use App\Models\Produccion;
 use App\Services\Contracts\ProduccionServiceInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;

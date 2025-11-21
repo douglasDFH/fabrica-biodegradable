@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Maquina;
+use App\Models\Producto;
+use App\Models\Receta;
 use App\Models\TipoMaquina;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -82,7 +84,75 @@ class FabricaCompletaSeeder extends Seeder
             ]
         );
 
-        // 5. Crear un registro en maquinas_estado_vivo para cada máquina (para que Reverb funcione desde el inicio)
+        // 5. Crear productos de prueba
+        $producto1 = Producto::firstOrCreate(
+            ['codigo' => 'PROD-001'],
+            [
+                'nombre' => 'Bolsa Biodegradable 30x40cm',
+                'descripcion' => 'Bolsa biodegradable de uso general',
+                'unidad_medida' => 'kg',
+                'activo' => true,
+            ]
+        );
+
+        $producto2 = Producto::firstOrCreate(
+            ['codigo' => 'PROD-002'],
+            [
+                'nombre' => 'Envase Compostable 500ml',
+                'descripcion' => 'Envase compostable certificado',
+                'unidad_medida' => 'kg',
+                'activo' => true,
+            ]
+        );
+
+        $producto3 = Producto::firstOrCreate(
+            ['codigo' => 'PROD-003'],
+            [
+                'nombre' => 'Film Biodegradable Industrial',
+                'descripcion' => 'Film biodegradable de alta resistencia',
+                'unidad_medida' => 'kg',
+                'activo' => true,
+            ]
+        );
+
+        // 6. Crear recetas de prueba
+        Receta::firstOrCreate(
+            [
+                'producto_id' => $producto1->id,
+                'version' => 1,
+            ],
+            [
+                'nombre_receta' => 'Receta Estándar Bolsa 30x40',
+                'rendimiento_porcentual' => 98.50,
+                'activo' => true,
+            ]
+        );
+
+        Receta::firstOrCreate(
+            [
+                'producto_id' => $producto2->id,
+                'version' => 1,
+            ],
+            [
+                'nombre_receta' => 'Receta Estándar Envase 500ml',
+                'rendimiento_porcentual' => 97.80,
+                'activo' => true,
+            ]
+        );
+
+        Receta::firstOrCreate(
+            [
+                'producto_id' => $producto3->id,
+                'version' => 1,
+            ],
+            [
+                'nombre_receta' => 'Receta Film Industrial v1',
+                'rendimiento_porcentual' => 99.20,
+                'activo' => true,
+            ]
+        );
+
+        // 7. Crear un registro en maquinas_estado_vivo para cada máquina (para que Reverb funcione desde el inicio)
         foreach (Maquina::all() as $maquina) {
             \App\Models\MaquinaEstadoVivo::updateOrCreate(
                 ['maquina_id' => $maquina->id],

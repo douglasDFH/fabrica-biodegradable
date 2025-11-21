@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\MaquinaEstadoController;
 use App\Http\Controllers\Api\SimulacionController;
 use App\Http\Controllers\Planta\MonitorMaquinaController;
 use Illuminate\Http\Request;
@@ -11,3 +12,4 @@ Route::get('/user', function (Request $request) {
 
 Route::post('/simular-produccion', [SimulacionController::class, 'simularProduccion']);
 Route::get('/maquina/{maquina}/estado', [MonitorMaquinaController::class, 'getEstado']);
+Route::put('/maquina/{maquina}/estado', [MaquinaEstadoController::class, 'updateEstado']);

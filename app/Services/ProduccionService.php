@@ -2,65 +2,68 @@
 
 namespace App\Services;
 
+use App\Events\Maquina\EstadoActualizado;
+use App\Events\Produccion\Registrada;
 use App\Models\Maquina;
 use App\Models\MaquinaEstadoVivo;
 use App\Models\Produccion;
-use App\Events\ProduccionRegistrada;
-use App\Events\MaquinaEstadoActualizado;
 use App\Services\Contracts\ProduccionServiceInterface;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class ProduccionService implements ProduccionServiceInterface
 {
     public function registrarProduccion(int $maquinaId, float $kgIncremento, float $oee, float $velocidad): array
     {
-        $maquina = Maquina::findOrFail($maquinaId);
+        return DB::transaction(function () use ($maquinaId, $kgIncremento, $oee, $velocidad) {
+            $maquina = Maquina::findOrFail($maquinaId);
 
-        // Obtener o crear estado vivo
-        $estado = MaquinaEstadoVivo::firstOrCreate(
-            ['maquina_id' => $maquinaId],
-            [
-                'estado' => 'Produciendo',
-                'kg_producidos' => 0,
-                'velocidad_actual' => 100,
-                'oee_actual' => 85.5,
-            ]
-        );
+            // Obtener o crear estado vivo
+            $estado = MaquinaEstadoVivo::firstOrCreate(
+                ['maquina_id' => $maquina->id],
+                [
+                    'estado' => 'Produciendo',
+                    'kg_producidos' => 0,
+                    'velocidad_actual' => 100,
+                    'oee_actual' => 85.5,
+                ]
+            );
 
-        // Actualizar estado
-        $estado->kg_producidos += $kgIncremento;
-        $estado->oee_actual = $oee;
-        $estado->velocidad_actual = $velocidad;
-        $estado->save();
+            // Actualizar estado
+            $estado->kg_producidos += $kgIncremento;
+            $estado->oee_actual = $oee;
+            $estado->velocidad_actual = $velocidad;
+            $estado->save();
 
-        // Emitir evento para broadcasting del estado de máquina
-        event(new MaquinaEstadoActualizado($estado));
+            // Emitir evento para broadcasting del estado de máquina
+            event(new EstadoActualizado($estado));
 
-        // Crear registro de producción
-        $produccion = Produccion::create([
-            'numero_orden' => 'SIM-' . (int)(microtime(true) * 1000000) . '-' . $maquinaId,
-            'maquina_id' => $maquinaId,
-            'operador_id' => \App\Models\User::first()->id ?? 1,
-            'receta_id' => \App\Models\Receta::first()->id ?? 1,
-            'cantidad_producida_kg' => $kgIncremento,
-            'oee_actual' => $oee,
-            'velocidad_actual' => $velocidad,
-            'estado' => 'Finalizada',
-            'fecha_inicio' => now(),
-            'fecha_fin' => now(),
-            'turno' => $this->determinarTurno(),
-        ]);
+            // Crear registro de producción
+            $produccion = Produccion::create([
+                'numero_orden' => 'SIM-'.(int) (microtime(true) * 1000000).'-'.$maquinaId,
+                'maquina_id' => $maquinaId,
+                'operador_id' => \App\Models\User::first()?->id,
+                'receta_id' => \App\Models\Receta::first()?->id,
+                'cantidad_producida_kg' => $kgIncremento,
+                'oee_actual' => $oee,
+                'velocidad_actual' => $velocidad,
+                'estado' => 'Finalizada',
+                'fecha_inicio' => now(),
+                'fecha_fin' => now(),
+                'turno' => $this->determinarTurno(),
+            ]);
 
-        // Emitir evento para broadcasting
-        event(new ProduccionRegistrada($produccion, $estado));
+            // Emitir evento para broadcasting
+            event(new Registrada($produccion, $estado));
 
-        return [
-            'maquina_id' => $maquinaId,
-            'kg_producidos' => $estado->kg_producidos,
-            'oee_actual' => $estado->oee_actual,
-            'velocidad_actual' => $estado->velocidad_actual,
-            'estado' => 'actualizado',
-        ];
+            return [
+                'maquina_id' => $maquinaId,
+                'kg_producidos' => $estado->kg_producidos,
+                'oee_actual' => $estado->oee_actual,
+                'velocidad_actual' => $estado->velocidad_actual,
+                'estado' => 'actualizado',
+            ];
+        });
     }
 
     public function getEstadisticasDia(): array
