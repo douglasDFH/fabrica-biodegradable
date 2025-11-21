@@ -2,24 +2,27 @@
 
 namespace App\Events;
 
+use App\Models\Produccion;
 use App\Models\MaquinaEstadoVivo;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 
-class MaquinaEstadoActualizado implements ShouldBroadcastNow
+class ProduccionRegistrada implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    public Produccion $produccion;
     public MaquinaEstadoVivo $estado;
 
     /**
      * Create a new event instance.
      */
-    public function __construct(MaquinaEstadoVivo $estado)
+    public function __construct(Produccion $produccion, MaquinaEstadoVivo $estado)
     {
+        $this->produccion = $produccion;
         $this->estado = $estado;
     }
 
@@ -31,8 +34,7 @@ class MaquinaEstadoActualizado implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new Channel('maquina-estado'),
-            new Channel('maquina.'.$this->estado->maquina_id),
+            new Channel('dashboard'),
         ];
     }
 
@@ -41,7 +43,7 @@ class MaquinaEstadoActualizado implements ShouldBroadcastNow
      */
     public function broadcastAs(): string
     {
-        return 'maquina.estado.actualizado';
+        return 'produccion.registrada';
     }
 
     /**
@@ -50,7 +52,9 @@ class MaquinaEstadoActualizado implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
+            'produccion' => $this->produccion->load('maquina'),
             'estado' => $this->estado,
+            'estadisticas' => app(\App\Services\Contracts\ProduccionServiceInterface::class)->getEstadisticasDia(),
         ];
     }
 }
