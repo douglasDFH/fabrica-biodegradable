@@ -3,13 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\BroadcastsEvents;
 
 class Maquina extends Model
 {
     protected $fillable = [
         'codigo', 'nombre', 'tipo_maquina_id', 'fecha_compra',
-        'horas_trabajadas', 'estado', 'ubicacion_planta', 'foto'
+        'horas_trabajadas', 'estado', 'ubicacion_planta', 'foto',
     ];
 
     public function tipo()

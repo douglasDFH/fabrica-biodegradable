@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-      Schema::create('produccion_consumos', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('produccion_id')->constrained('producciones')->cascadeOnDelete();
-        $table->foreignId('lote_materia_prima_id')->constrained('lotes_materia_prima');
-        $table->decimal('cantidad_consumida_kg', 12, 3);
-        $table->timestamps();
-    });
+        Schema::create('produccion_consumos', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('produccion_id')->constrained('producciones')->cascadeOnDelete();
+            $table->foreignId('lote_materia_prima_id')->constrained('lotes_materia_prima');
+            $table->decimal('cantidad_consumida_kg', 12, 3);
+            $table->timestamps();
+        });
     }
 
     /**

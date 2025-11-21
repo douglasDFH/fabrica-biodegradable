@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('receta_detalles', function (Blueprint $table) {
-        $table->foreignId('receta_id')->constrained('recetas')->cascadeOnDelete();
-        $table->foreignId('materia_prima_id')->constrained('materias_primas');
-        $table->decimal('cantidad_por_kg', 8, 4);
-        $table->decimal('porcentaje', 6, 3)->nullable();
-        $table->primary(['receta_id', 'materia_prima_id']);
-    });
+        Schema::create('receta_detalles', function (Blueprint $table) {
+            $table->foreignId('receta_id')->constrained('recetas')->cascadeOnDelete();
+            $table->foreignId('materia_prima_id')->constrained('materias_primas');
+            $table->decimal('cantidad_por_kg', 8, 4);
+            $table->decimal('porcentaje', 6, 3)->nullable();
+            $table->primary(['receta_id', 'materia_prima_id']);
+        });
     }
 
     /**

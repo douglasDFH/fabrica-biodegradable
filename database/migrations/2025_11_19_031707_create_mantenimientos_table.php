@@ -12,17 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('mantenimientos', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('maquina_id')->constrained('maquinas');
-        $table->enum('tipo', ['Preventivo', 'Correctivo']);
-        $table->date('fecha_programada')->nullable();
-        $table->date('fecha_realizada')->nullable();
-        $table->text('descripcion');
-        $table->foreignId('realizado_por')->nullable()->constrained('users');
-        $table->decimal('costo', 12, 2)->nullable();
-        $table->integer('horas_parada')->nullable();
-        $table->timestamps();
-    });
+            $table->id();
+            $table->foreignId('maquina_id')->constrained('maquinas');
+            $table->enum('tipo', ['Preventivo', 'Correctivo']);
+            $table->date('fecha_programada')->nullable();
+            $table->date('fecha_realizada')->nullable();
+            $table->text('descripcion');
+            $table->foreignId('realizado_por')->nullable()->constrained('users');
+            $table->decimal('costo', 12, 2)->nullable();
+            $table->integer('horas_parada')->nullable();
+            $table->timestamps();
+        });
     }
 
     /**

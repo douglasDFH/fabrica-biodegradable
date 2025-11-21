@@ -2,10 +2,10 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
+use App\Events\MaquinaEstadoActualizado;
 use App\Models\Maquina;
 use App\Models\MaquinaEstadoVivo;
-use App\Events\MaquinaEstadoActualizado;
+use Illuminate\Console\Command;
 
 class SimularProduccion extends Command
 {
@@ -31,8 +31,9 @@ class SimularProduccion extends Command
         $maquinaId = $this->argument('maquina_id');
         $maquina = Maquina::find($maquinaId);
 
-        if (!$maquina) {
+        if (! $maquina) {
             $this->error("Máquina con ID {$maquinaId} no encontrada.");
+
             return 1;
         }
 
@@ -68,7 +69,7 @@ class SimularProduccion extends Command
             // Broadcast el evento
             broadcast(new MaquinaEstadoActualizado($estado));
 
-            $this->info("KG: " . number_format($estado->kg_producidos, 1) . " | OEE: " . number_format($estado->oee_actual, 1) . "% | Vel: {$estado->velocidad_actual} rpm");
+            $this->info('KG: '.number_format($estado->kg_producidos, 1).' | OEE: '.number_format($estado->oee_actual, 1)."% | Vel: {$estado->velocidad_actual} rpm");
 
             sleep(1); // Esperar 1 segundo
         }

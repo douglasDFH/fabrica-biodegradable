@@ -11,16 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('paradas', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('maquina_id')->constrained('maquinas');
-        $table->foreignId('produccion_id')->nullable()->constrained('producciones');
-        $table->dateTime('inicio');
-        $table->dateTime('fin')->nullable();
-        $table->string('motivo');
-        $table->integer('tiempo_minutos')->virtualAs('TIMESTAMPDIFF(MINUTE, inicio, COALESCE(fin, NOW()))');
-        $table->timestamps();
-    });
+        Schema::create('paradas', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('maquina_id')->constrained('maquinas');
+            $table->foreignId('produccion_id')->nullable()->constrained('producciones');
+            $table->dateTime('inicio');
+            $table->dateTime('fin')->nullable();
+            $table->string('motivo');
+            $table->integer('tiempo_minutos')->virtualAs('TIMESTAMPDIFF(MINUTE, inicio, COALESCE(fin, NOW()))');
+            $table->timestamps();
+        });
     }
 
     /**

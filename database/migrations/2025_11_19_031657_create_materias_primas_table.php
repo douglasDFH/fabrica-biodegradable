@@ -11,18 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('materias_primas', function (Blueprint $table) {
-        $table->id();
-        $table->string('codigo')->unique();
-        $table->string('nombre');
-        $table->foreignId('proveedor_id')->nullable()->constrained('proveedores');
-        $table->string('unidad_medida')->default('kg');
-        $table->decimal('stock_actual', 12, 3)->default(0);
-        $table->decimal('stock_minimo', 12, 3)->default(0);
-        $table->decimal('precio_promedio_kg', 10, 2)->nullable();
-        $table->boolean('activo')->default(true);
-        $table->timestamps();
-    });
+        Schema::create('materias_primas', function (Blueprint $table) {
+            $table->id();
+            $table->string('codigo')->unique();
+            $table->string('nombre');
+            $table->foreignId('proveedor_id')->nullable()->constrained('proveedores');
+            $table->string('unidad_medida')->default('kg');
+            $table->decimal('stock_actual', 12, 3)->default(0);
+            $table->decimal('stock_minimo', 12, 3)->default(0);
+            $table->decimal('precio_promedio_kg', 10, 2)->nullable();
+            $table->boolean('activo')->default(true);
+            $table->timestamps();
+        });
     }
 
     /**

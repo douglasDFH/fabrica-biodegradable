@@ -12,16 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('productos', function (Blueprint $table) {
-        $table->id();
-        $table->string('codigo')->unique();
-        $table->string('nombre');
-        $table->text('descripcion')->nullable();
-        $table->string('unidad_medida')->default('kg');
-        $table->decimal('stock_actual', 12, 3)->default(0);
-        $table->decimal('precio_venta_promedio', 10, 2)->nullable();
-        $table->boolean('activo')->default(true);
-        $table->timestamps();
-    });
+            $table->id();
+            $table->string('codigo')->unique();
+            $table->string('nombre');
+            $table->text('descripcion')->nullable();
+            $table->string('unidad_medida')->default('kg');
+            $table->decimal('stock_actual', 12, 3)->default(0);
+            $table->decimal('precio_venta_promedio', 10, 2)->nullable();
+            $table->boolean('activo')->default(true);
+            $table->timestamps();
+        });
     }
 
     /**

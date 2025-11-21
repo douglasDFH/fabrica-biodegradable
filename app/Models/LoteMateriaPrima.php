@@ -8,13 +8,13 @@ class LoteMateriaPrima extends Model
 {
     protected $fillable = [
         'materia_prima_id', 'numero_lote_proveedor', 'fecha_ingreso',
-        'fecha_vencimiento', 'cantidad_ingresada', 'cantidad_actual', 'activo'
+        'fecha_vencimiento', 'cantidad_ingresada', 'cantidad_actual', 'activo',
     ];
 
     protected $casts = [
         'fecha_ingreso' => 'date',
         'fecha_vencimiento' => 'date',
-        'activo' => 'boolean'
+        'activo' => 'boolean',
     ];
 
     public function materiaPrima()

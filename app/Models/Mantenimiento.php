@@ -8,12 +8,12 @@ class Mantenimiento extends Model
 {
     protected $fillable = [
         'maquina_id', 'tipo', 'fecha_programada', 'fecha_realizada',
-        'descripcion', 'realizado_por', 'costo', 'horas_parada'
+        'descripcion', 'realizado_por', 'costo', 'horas_parada',
     ];
 
     protected $casts = [
         'fecha_programada' => 'date',
-        'fecha_realizada' => 'date'
+        'fecha_realizada' => 'date',
     ];
 
     public function maquina()

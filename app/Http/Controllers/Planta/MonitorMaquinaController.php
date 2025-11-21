@@ -56,7 +56,7 @@ class MonitorMaquinaController extends Controller
     {
         $estado = $maquina->estadoVivo;
 
-        if (!$estado) {
+        if (! $estado) {
             return response()->json(null);
         }
 

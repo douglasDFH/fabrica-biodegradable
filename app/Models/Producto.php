@@ -8,11 +8,11 @@ class Producto extends Model
 {
     protected $fillable = [
         'codigo', 'nombre', 'descripcion', 'unidad_medida',
-        'stock_actual', 'precio_venta_promedio', 'activo'
+        'stock_actual', 'precio_venta_promedio', 'activo',
     ];
 
     protected $casts = [
-        'activo' => 'boolean'
+        'activo' => 'boolean',
     ];
 
     public function recetas()

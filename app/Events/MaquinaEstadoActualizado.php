@@ -2,12 +2,12 @@
 
 namespace App\Events;
 
+use App\Models\MaquinaEstadoVivo;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use App\Models\MaquinaEstadoVivo;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 
 class MaquinaEstadoActualizado implements ShouldBroadcastNow
 {
@@ -31,7 +31,7 @@ class MaquinaEstadoActualizado implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new Channel('maquina.' . $this->estado->maquina_id),
+            new Channel('maquina.'.$this->estado->maquina_id),
         ];
     }
 

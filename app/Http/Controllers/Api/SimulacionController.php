@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\MaquinaEstadoActualizado;
 use App\Http\Controllers\Controller;
 use App\Models\Maquina;
 use App\Models\MaquinaEstadoVivo;
-use App\Events\MaquinaEstadoActualizado;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -25,6 +25,7 @@ class SimulacionController extends Controller
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Errores de validación:', $e->errors());
+
             return response()->json(['errors' => $e->errors()], 422);
         }
 

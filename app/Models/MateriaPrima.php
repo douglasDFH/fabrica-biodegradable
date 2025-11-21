@@ -8,11 +8,11 @@ class MateriaPrima extends Model
 {
     protected $fillable = [
         'codigo', 'nombre', 'proveedor_id', 'unidad_medida',
-        'stock_actual', 'stock_minimo', 'precio_promedio_kg', 'activo'
+        'stock_actual', 'stock_minimo', 'precio_promedio_kg', 'activo',
     ];
 
     protected $casts = [
-        'activo' => 'boolean'
+        'activo' => 'boolean',
     ];
 
     public function proveedor()

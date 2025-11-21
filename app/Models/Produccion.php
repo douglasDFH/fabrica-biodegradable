@@ -9,12 +9,12 @@ class Produccion extends Model
     protected $fillable = [
         'numero_orden', 'maquina_id', 'operador_id', 'encargado_id',
         'receta_id', 'fecha_inicio', 'fecha_fin', 'turno',
-        'cantidad_objetivo_kg', 'cantidad_producida_kg', 'estado', 'observaciones'
+        'cantidad_objetivo_kg', 'cantidad_producida_kg', 'estado', 'observaciones',
     ];
 
     protected $casts = [
         'fecha_inicio' => 'datetime',
-        'fecha_fin' => 'datetime'
+        'fecha_fin' => 'datetime',
     ];
 
     public function maquina()

@@ -2,13 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
-use App\Models\TipoMaquina;
 use App\Models\Maquina;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
+use App\Models\TipoMaquina;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class FabricaCompletaSeeder extends Seeder
 {
@@ -43,7 +42,7 @@ class FabricaCompletaSeeder extends Seeder
             [
                 'nombre' => 'Arburg 320C',
                 'tipo_maquina_id' => 1,
-                'estado' => 'Operativa'
+                'estado' => 'Operativa',
             ]
         );
 
@@ -52,7 +51,7 @@ class FabricaCompletaSeeder extends Seeder
             [
                 'nombre' => 'KraussMaffei KMD 75-36',
                 'tipo_maquina_id' => 2,
-                'estado' => 'Operativa'
+                'estado' => 'Operativa',
             ]
         );
 
@@ -61,7 +60,7 @@ class FabricaCompletaSeeder extends Seeder
             [
                 'nombre' => 'Sidel SBO 24',
                 'tipo_maquina_id' => 3,
-                'estado' => 'Operativa'
+                'estado' => 'Operativa',
             ]
         );
 
@@ -70,7 +69,7 @@ class FabricaCompletaSeeder extends Seeder
             [
                 'nombre' => 'Illig RDM 54K',
                 'tipo_maquina_id' => 4,
-                'estado' => 'Operativa'
+                'estado' => 'Operativa',
             ]
         );
 
@@ -79,7 +78,7 @@ class FabricaCompletaSeeder extends Seeder
             [
                 'nombre' => 'Rapid 150',
                 'tipo_maquina_id' => 5,
-                'estado' => 'Operativa'
+                'estado' => 'Operativa',
             ]
         );
 

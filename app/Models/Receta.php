@@ -8,12 +8,12 @@ class Receta extends Model
 {
     protected $fillable = [
         'producto_id', 'nombre_receta', 'version', 'rendimiento_porcentual',
-        'activo', 'aprobada_por', 'fecha_aprobacion'
+        'activo', 'aprobada_por', 'fecha_aprobacion',
     ];
 
     protected $casts = [
         'fecha_aprobacion' => 'date',
-        'activo' => 'boolean'
+        'activo' => 'boolean',
     ];
 
     public function producto()

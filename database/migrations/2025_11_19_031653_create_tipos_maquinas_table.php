@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('tipos_maquinas', function (Blueprint $table) {
-        $table->id();
-        $table->string('nombre'); // Inyección, Extrusión, Soplado, Termoformado, Granulador
-        $table->text('descripcion')->nullable();
-        $table->timestamps();
-    });
+        Schema::create('tipos_maquinas', function (Blueprint $table) {
+            $table->id();
+            $table->string('nombre'); // Inyección, Extrusión, Soplado, Termoformado, Granulador
+            $table->text('descripcion')->nullable();
+            $table->timestamps();
+        });
     }
 
     /**

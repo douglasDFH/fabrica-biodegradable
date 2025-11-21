@@ -1,8 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Planta\MonitorMaquinaController;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/planta/monitor-maquina', [MonitorMaquinaController::class, 'index'])
     ->name('planta.monitor-maquina.index');

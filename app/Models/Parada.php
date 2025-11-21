@@ -7,12 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 class Parada extends Model
 {
     protected $fillable = [
-        'maquina_id', 'produccion_id', 'inicio', 'fin', 'motivo'
+        'maquina_id', 'produccion_id', 'inicio', 'fin', 'motivo',
     ];
 
     protected $casts = [
         'inicio' => 'datetime',
-        'fin' => 'datetime'
+        'fin' => 'datetime',
     ];
 
     public function maquina()

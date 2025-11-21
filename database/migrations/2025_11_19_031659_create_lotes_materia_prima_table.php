@@ -11,17 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('lotes_materia_prima', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('materia_prima_id')->constrained('materias_primas');
-        $table->string('numero_lote_proveedor');
-        $table->date('fecha_ingreso');
-        $table->date('fecha_vencimiento')->nullable();
-        $table->decimal('cantidad_ingresada', 12, 3);
-        $table->decimal('cantidad_actual', 12, 3);
-        $table->boolean('activo')->default(true);
-        $table->timestamps();
-    });
+        Schema::create('lotes_materia_prima', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('materia_prima_id')->constrained('materias_primas');
+            $table->string('numero_lote_proveedor');
+            $table->date('fecha_ingreso');
+            $table->date('fecha_vencimiento')->nullable();
+            $table->decimal('cantidad_ingresada', 12, 3);
+            $table->decimal('cantidad_actual', 12, 3);
+            $table->boolean('activo')->default(true);
+            $table->timestamps();
+        });
     }
 
     /**
