@@ -30,29 +30,38 @@ class SimulacionController extends Controller
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Errores de validación:', $e->errors());
-
+            Log::error('Datos recibidos:', $request->all());
             return response()->json(['errors' => $e->errors()], 422);
         }
 
         $resultados = [];
 
         foreach ($request->producciones as $prod) {
-            // Usar timestamp_generacion si existe, sino usar now()
-            $fechaProduccion = isset($prod['timestamp_generacion'])
-                ? \Carbon\Carbon::createFromTimestampMs($prod['timestamp_generacion'])
-                : now();
+            try {
+                // Usar timestamp_generacion si existe, sino usar now()
+                $fechaProduccion = isset($prod['timestamp_generacion'])
+                    ? \Carbon\Carbon::createFromTimestampMs($prod['timestamp_generacion'])
+                    : now();
 
-            $isLastRegister = $prod['is_last_register'] ?? false;
+                $isLastRegister = $prod['is_last_register'] ?? false;
 
-            $resultado = $this->produccionService->registrarProduccion(
-                $prod['maquina_id'],
-                $prod['kg_incremento'],
-                $prod['oee'],
-                $prod['velocidad'],
-                $fechaProduccion,
-                $isLastRegister
-            );
-            $resultados[] = $resultado;
+                $resultado = $this->produccionService->registrarProduccion(
+                    $prod['maquina_id'],
+                    $prod['kg_incremento'],
+                    $prod['oee'],
+                    $prod['velocidad'],
+                    $fechaProduccion,
+                    $isLastRegister
+                );
+                $resultados[] = $resultado;
+            } catch (\Exception $e) {
+                Log::error('Error procesando producción para máquina ' . $prod['maquina_id'] . ': ' . $e->getMessage());
+                $resultados[] = [
+                    'error' => true,
+                    'maquina_id' => $prod['maquina_id'],
+                    'message' => $e->getMessage()
+                ];
+            }
         }
 
         return response()->json([

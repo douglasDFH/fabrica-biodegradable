@@ -70,15 +70,26 @@ export default {
 
     getEstadoClass(estado) {
       switch (estado) {
+        case 'Produciendo':
+        case 'produciendo':
         case 'operando':
         case 'Operando':
           return 'bg-green-100 text-green-800';
-        case 'parada':
-        case 'Parada':
-          return 'bg-red-100 text-red-800';
-        case 'mantenimiento':
-        case 'Mantenimiento':
+        case 'Pausada':
+        case 'pausada':
           return 'bg-yellow-100 text-yellow-800';
+        case 'Parada':
+        case 'parada':
+          return 'bg-gray-100 text-gray-800';
+        case 'Offline':
+        case 'offline':
+          return 'bg-red-100 text-red-800';
+        case 'Alarma':
+        case 'alarma':
+          return 'bg-orange-100 text-orange-800';
+        case 'Mantenimiento':
+        case 'mantenimiento':
+          return 'bg-blue-100 text-blue-800';
         default:
           return 'bg-gray-100 text-gray-800';
       }
@@ -86,14 +97,26 @@ export default {
 
     getEstadoText(estado) {
       switch (estado) {
+        case 'Produciendo':
+        case 'produciendo':
+          return 'Produciendo';
         case 'operando':
         case 'Operando':
           return 'Operando';
-        case 'parada':
+        case 'Pausada':
+        case 'pausada':
+          return 'Pausada';
         case 'Parada':
+        case 'parada':
           return 'Parada';
-        case 'mantenimiento':
+        case 'Offline':
+        case 'offline':
+          return 'Offline';
+        case 'Alarma':
+        case 'alarma':
+          return 'Alarma';
         case 'Mantenimiento':
+        case 'mantenimiento':
           return 'Mantenimiento';
         default:
           return estado || 'Desconocido';

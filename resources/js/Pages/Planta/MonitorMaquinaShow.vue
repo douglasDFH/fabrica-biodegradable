@@ -438,6 +438,11 @@ const cambiarEstado = async (nuevoEstado) => {
     simulacion.estado = nuevoEstado;
     tiempoInicioEstado.value = Date.now();
 
+    // ACTUALIZAR ESTADO VISUAL INMEDIATAMENTE (UI optimista)
+    if (maquina.estado_vivo) {
+        maquina.estado_vivo.estado = nuevoEstado;
+    }
+
     // Actualizar estado en servidor
     try {
         await axios.put(`/api/maquina/${maquina.id}/estado`, {
@@ -448,6 +453,10 @@ const cambiarEstado = async (nuevoEstado) => {
         await guardarConfiguracion();
     } catch (error) {
         console.error("Error actualizando estado:", error);
+        // Revertir el cambio visual si falla
+        if (maquina.estado_vivo) {
+            maquina.estado_vivo.estado = simulacion.estado;
+        }
     }
 
     gestionarIntervaloSimulacion();
@@ -473,30 +482,51 @@ const gestionarIntervaloSimulacion = () => {
 };
 
 const simularProduccion = () => {
+    // Asegurar que la configuración tenga valores válidos
+    const config = {
+        velocidadProduccion: parseFloat(simulacion.config.velocidadProduccion) || 10.0,
+        intervaloGeneracion: parseInt(simulacion.config.intervaloGeneracion) || 5,
+        oeeMin: parseFloat(simulacion.config.oeeMin) || 80,
+        oeeMax: parseFloat(simulacion.config.oeeMax) || 100,
+        velocidadMin: parseFloat(simulacion.config.velocidadMin) || 80,
+        velocidadMax: parseFloat(simulacion.config.velocidadMax) || 100,
+    };
+
     // Calcular valores aleatorios dentro de rangos configurados
     let oee = parseFloat(
         (
             Math.random() *
-                (simulacion.config.oeeMax - simulacion.config.oeeMin) +
-            simulacion.config.oeeMin
+                (config.oeeMax - config.oeeMin) +
+            config.oeeMin
         ).toFixed(2)
     );
     if (oee > 100) oee = 100.0;
+    if (isNaN(oee)) oee = 85.0;
+
     const velocidad = parseFloat(
         (
             Math.random() *
-                (simulacion.config.velocidadMax -
-                    simulacion.config.velocidadMin) +
-            simulacion.config.velocidadMin
+                (config.velocidadMax -
+                    config.velocidadMin) +
+            config.velocidadMin
         ).toFixed(2)
     );
+    if (isNaN(velocidad)) velocidad = 90.0;
 
     // Calcular incremento basado en velocidad de producción configurada
     // velocidadProduccion es kg/min, intervalo es segundos
-    const kgPorSegundo = simulacion.config.velocidadProduccion / 60;
+    const kgPorSegundo = config.velocidadProduccion / 60;
     const kgIncremento = parseFloat(
-        (kgPorSegundo * simulacion.config.intervaloGeneracion).toFixed(2)
+        (kgPorSegundo * config.intervaloGeneracion).toFixed(2)
     );
+    if (isNaN(kgIncremento)) kgIncremento = 0.83; // 10kg/min / 60 * 5seg = 0.83kg
+
+    console.log('Valores calculados:', {
+        oee,
+        velocidad,
+        kgIncremento,
+        config
+    });
 
     const produccion = {
         maquina_id: maquina.id,
@@ -505,6 +535,8 @@ const simularProduccion = () => {
         velocidad: velocidad,
         timestamp_generacion: Date.now(),
     };
+
+    console.log('Producción a enviar:', produccion);
 
     colaProduccion.value.push(produccion);
     simulacion.stats.produccionesGeneradas++;
@@ -520,10 +552,14 @@ const enviarColaProduccion = async () => {
 
     const produccionesParaEnviar = [...colaProduccion.value];
 
+    console.log('Enviando producciones:', produccionesParaEnviar);
+
     try {
         const response = await axios.post("/api/simular-produccion", {
             producciones: produccionesParaEnviar,
         });
+
+        console.log('Respuesta del servidor:', response.data);
 
         if (response.data.success) {
             simulacion.stats.produccionesEnviadas +=
@@ -573,6 +609,29 @@ const guardarConfiguracion = async () => {
 // Lifecycle Hooks
 onMounted(async () => {
     console.log("Iniciando simulador...");
+
+    // LIMPIAR COLA DE PRODUCCIÓN ANTIGUA CON FORMATO INCOMPATIBLE
+    try {
+        const colaGuardada = JSON.parse(localStorage.getItem("colaProduccion") || "[]");
+        // Filtrar solo las producciones con el formato correcto
+        const colaLimpia = colaGuardada.filter(p =>
+            p.hasOwnProperty('kg_incremento') &&
+            p.hasOwnProperty('oee') &&
+            p.hasOwnProperty('velocidad') &&
+            p.hasOwnProperty('timestamp_generacion')
+        );
+
+        if (colaLimpia.length !== colaGuardada.length) {
+            console.warn(`Limpiando ${colaGuardada.length - colaLimpia.length} producciones antiguas con formato incompatible`);
+            localStorage.setItem("colaProduccion", JSON.stringify(colaLimpia));
+            colaProduccion.value = colaLimpia;
+        }
+    } catch (error) {
+        console.error("Error limpiando cola:", error);
+        // En caso de error, limpiar completamente
+        localStorage.setItem("colaProduccion", "[]");
+        colaProduccion.value = [];
+    }
 
     // Recuperar estado inicial
     try {
@@ -632,15 +691,45 @@ onMounted(async () => {
     if (window.Echo) {
         window.Echo.channel("dashboard")
             .listen(".maquina.estado.actualizado", (e) => {
+                console.log("Evento recibido: maquina.estado.actualizado", e);
                 if (e.estado && e.estado.maquina_id === maquina.id) {
-                    maquina.estado_vivo = e.estado;
+                    // IMPORTANTE: Actualizar TODOS los campos incluyendo el estado
+                    // Este evento se emite cuando el usuario cambia el estado manualmente
+                    Object.assign(maquina.estado_vivo, e.estado);
+
+                    // Sincronizar el estado local de simulación con el estado de la máquina
+                    if (e.estado.estado && simulacion.estado !== e.estado.estado) {
+                        simulacion.estado = e.estado.estado;
+                    }
+
+                    console.log("Estado actualizado:", maquina.estado_vivo);
                 }
             })
             .listen(".produccion.registrada", (e) => {
+                console.log("Evento recibido: produccion.registrada", e);
                 if (e.estado && e.estado.maquina_id === maquina.id) {
-                    maquina.estado_vivo = e.estado;
+                    // IMPORTANTE: Solo actualizar MÉTRICAS, NO el campo 'estado'
+                    // Este evento se emite cuando se registra producción
+                    // El estado ya fue establecido por el usuario y NO debe cambiar
+                    if (maquina.estado_vivo) {
+                        maquina.estado_vivo.kg_producidos = e.estado.kg_producidos;
+                        maquina.estado_vivo.oee_actual = e.estado.oee_actual;
+                        maquina.estado_vivo.velocidad_actual = e.estado.velocidad_actual;
+                        if (e.estado.produccion_id) {
+                            maquina.estado_vivo.produccion_id = e.estado.produccion_id;
+                        }
+                        // NO actualizar: maquina.estado_vivo.estado
+                    }
+                    console.log("Métricas actualizadas (estado preservado):", maquina.estado_vivo);
                 }
+            })
+            .error((error) => {
+                console.error("Error en WebSocket:", error);
             });
+
+        console.log("WebSocket configurado correctamente en canal 'dashboard'");
+    } else {
+        console.error("Echo no está disponible. Verifica la configuración de Reverb.");
     }
 
     // Intentar enviar cola pendiente

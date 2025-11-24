@@ -71,17 +71,31 @@ class ProduccionService implements ProduccionServiceInterface
 
             $produccion->save();
 
-            // Actualizar estado vivo de la máquina
-            $estado->kg_producidos += $kgIncremento;
-            $estado->oee_actual = $oee;
-            $estado->velocidad_actual = $velocidad;
-            $estado->produccion_id = $produccion->id;
-            $estado->save();
+            // Actualizar estado vivo de la máquina (solo métricas, NO el estado)
+            // IMPORTANTE: Usar update() en lugar de save() para NO sobrescribir el campo 'estado'
+            // El estado solo se actualiza desde MaquinaEstadoController o cuando el usuario cambia el estado manualmente
 
-            // Emitir evento para broadcasting del estado de máquina
-            event(new EstadoActualizado($estado));
+            // Calcular valores adicionales para simulación
+            $piezasIncremento = rand(1, 5); // Piezas producidas en este ciclo
+            $metrosIncremento = round($kgIncremento * rand(5, 15) / 10, 3); // Metros basados en kg
+            $tiempoCicloActual = round(rand(100, 300) / 10, 3); // Tiempo de ciclo entre 10-30 segundos
 
-            // Emitir evento para broadcasting
+            MaquinaEstadoVivo::where('maquina_id', $maquinaId)->update([
+                'kg_producidos' => DB::raw('kg_producidos + ' . $kgIncremento),
+                'piezas_producidas' => DB::raw('piezas_producidas + ' . $piezasIncremento),
+                'metros_producidos' => DB::raw('metros_producidos + ' . $metrosIncremento),
+                'oee_actual' => $oee,
+                'velocidad_actual' => $velocidad,
+                'tiempo_ciclo_actual' => $tiempoCicloActual,
+                'produccion_id' => $produccion->id,
+                'updated_at' => now(),
+            ]);
+
+            // Recargar el estado para obtener los valores actualizados (incluyendo el estado que NO tocamos)
+            $estado->refresh();
+
+            // IMPORTANTE: NO emitir EstadoActualizado aquí porque sobrescribiría el estado establecido por el usuario
+            // Solo emitir Registrada que contiene las métricas actualizadas
             event(new Registrada($produccion, $estado));
 
             return [

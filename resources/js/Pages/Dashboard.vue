@@ -295,11 +295,11 @@ export default {
       );
 
       if (index !== -1) {
-        // Actualizar existente
-        this.estadosMaquinas[index] = { ...nuevoEstado };
+        // Actualizar existente usando Object.assign para mantener reactividad
+        Object.assign(this.estadosMaquinas[index], nuevoEstado);
       } else {
-        // Agregar nuevo
-        this.estadosMaquinas.push({ ...nuevoEstado });
+        // Agregar nuevo estado de máquina
+        this.estadosMaquinas.push(nuevoEstado);
       }
     },
 

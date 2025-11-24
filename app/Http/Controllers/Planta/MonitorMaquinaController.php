@@ -50,6 +50,18 @@ class MonitorMaquinaController extends Controller
     }
 
     /**
+     * Preview new design for the specified resource.
+     */
+    public function preview(Maquina $maquina)
+    {
+        $maquina->load('tipo', 'estadoVivo');
+
+        return Inertia::render('Planta/MonitorMaquinaShow_NEW', [
+            'maquina' => $maquina,
+        ]);
+    }
+
+    /**
      * Get the current state of a machine for API polling.
      */
     public function getEstado(Maquina $maquina)
