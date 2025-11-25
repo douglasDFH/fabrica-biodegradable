@@ -4,7 +4,20 @@
     <div class="container mx-auto px-4 py-8">
       <h1 class="text-3xl font-bold mb-8">Monitor de Máquinas - Lista</h1>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-if="!maquinas || maquinas.length === 0" class="bg-white rounded-lg shadow-md p-12 text-center">
+        <div class="flex flex-col items-center gap-4">
+          <svg class="w-20 h-20 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+          <h3 class="text-xl font-semibold text-gray-600">No hay máquinas para monitorear</h3>
+          <p class="text-gray-500">Primero debes agregar máquinas en el módulo de gestión</p>
+          <a href="/maquinas/create" class="mt-4 bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition-colors">
+            Ir a Gestión de Máquinas
+          </a>
+        </div>
+      </div>
+
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div v-for="maquina in maquinas" :key="maquina.id" class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow duration-300">
           <h2 class="text-xl font-semibold mb-2">{{ maquina.nombre }}</h2>
           <p class="text-gray-600 mb-1">Código: {{ maquina.codigo }}</p>
