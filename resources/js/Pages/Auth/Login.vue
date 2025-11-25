@@ -48,12 +48,9 @@
         <div class="w-full lg:w-1/2 flex items-center justify-center bg-white px-4 sm:px-6 lg:px-8">
             <div class="max-w-md w-full space-y-8">
                 <div class="text-center lg:text-left">
-                    <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
-                        Bienvenido de nuevo
-                    </h2>
-                    <p class="mt-2 text-sm text-gray-600">
-                        Por favor, ingresa tus credenciales para acceder.
-                    </p>
+                    <div class="flex justify-center mb-6">
+                        <img :src="'/Logo-Title.png'" alt="Logo Title" class="w-auto object-contain" />
+                    </div>
                 </div>
 
                 <form class="mt-8 space-y-6" @submit.prevent="submit">

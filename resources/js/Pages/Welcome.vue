@@ -25,17 +25,11 @@
                   Optimiza la producción, monitorea recursos en tiempo real y asegura la calidad de tus productos
                   sostenibles con nuestra plataforma de última generación.
                 </p>
-                <div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
+                <div v-if="!$page.props.auth.user" class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
                   <div class="rounded-md shadow">
                     <a href="/login"
                       class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg transition-all duration-300 transform hover:scale-105">
                       Iniciar Sesión
-                    </a>
-                  </div>
-                  <div class="mt-3 sm:mt-0 sm:ml-3">
-                    <a href="#"
-                      class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 md:py-4 md:text-lg transition-all duration-300">
-                      Saber más
                     </a>
                   </div>
                 </div>
