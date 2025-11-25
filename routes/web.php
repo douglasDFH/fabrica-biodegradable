@@ -32,4 +32,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/planta/monitor-maquina/{maquina}', [MonitorMaquinaController::class, 'show'])
         ->name('planta.monitor-maquina.show');
+
+    Route::get('/planta/{maquina}/getInfo', [MonitorMaquinaController::class, 'getInfo'])
+        ->name('planta.monitor-maquina.getInfo');
 });
