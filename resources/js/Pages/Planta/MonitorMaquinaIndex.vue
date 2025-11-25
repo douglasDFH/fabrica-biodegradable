@@ -12,7 +12,7 @@
           <p class="text-sm text-gray-500">Estado Vivo: {{ maquina.estado_vivo.estado }}</p>
           <p class="text-sm text-gray-500">KG Producidos: {{ maquina.estado_vivo.kg_producidos }}</p>
         </div>
-        <a :href="`/planta/monitor-maquina/${maquina.id}`" class="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+        <a :href="`/planta/monitor-maquina/${maquina.id}/preview`" class="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
           Ver Monitor
         </a>
       </div>
