@@ -194,7 +194,11 @@ const sidebarOpen = ref(false);
 const page = usePage();
 
 const logout = () => {
-  router.post('/logout');
+  router.post('/logout', {}, {
+    onSuccess: () => {
+      window.location.href = '/welcome';
+    },
+  });
 };
 
 const getNavClass = (path) => {
