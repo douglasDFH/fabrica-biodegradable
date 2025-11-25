@@ -33,29 +33,38 @@ class ProduccionService implements ProduccionServiceInterface
 
             // IMPORTANTE: Buscar producción activa del turno actual
             // No crear una nueva cada vez, sino actualizar la existente
-            $uuid = Produccion::where('maquina_id', $maquinaId)
+            $produccion = Produccion::where('maquina_id', $maquinaId)
                 ->where('turno', $turno)
                 ->where('estado', 'EnCurso')
                 ->latest()
-                ->value('id') ?? 0;
-            $uuid = ((int) $uuid) + 1;
-            $produccion = Produccion::firstOrCreate(
-                [
+                ->first();
+
+            // Si no existe una producción activa, crear una nueva
+            if (!$produccion) {
+                // Generar número de orden único basado en timestamp para evitar duplicados
+                $timestamp = $fechaProduccion->timestamp;
+                $numeroOrden = 'ORD-'.$fechaProduccion->format('Ymd').'-'.$maquinaId.'-'.$turno.'-'.$timestamp;
+
+                // Verificar que no exista (por si acaso hay collision de timestamp)
+                $contador = 1;
+                while (Produccion::where('numero_orden', $numeroOrden)->exists()) {
+                    $numeroOrden = 'ORD-'.$fechaProduccion->format('Ymd').'-'.$maquinaId.'-'.$turno.'-'.$timestamp.'-'.$contador;
+                    $contador++;
+                }
+
+                $produccion = Produccion::create([
                     'maquina_id' => $maquinaId,
                     'turno' => $turno,
-                    'estado' => 'EnCurso', // Solo producciones activas
-                ],
-                [
-                    // Datos iniciales si se crea nueva
-                    'numero_orden' => 'ORD-'.$fechaProduccion->format('Ymd').'-'.$maquinaId.'-'.$turno.'-'.$uuid,
+                    'estado' => 'EnCurso',
+                    'numero_orden' => $numeroOrden,
                     'operador_id' => \App\Models\User::first()?->id,
                     'receta_id' => \App\Models\Receta::first()?->id,
                     'cantidad_producida_kg' => 0,
                     'fecha_inicio' => $fechaProduccion,
                     'oee_actual' => $oee,
                     'velocidad_actual' => $velocidad,
-                ]
-            );
+                ]);
+            }
 
             // Incrementar cantidad producida
             $produccion->cantidad_producida_kg += $kgIncremento;
@@ -128,13 +137,18 @@ class ProduccionService implements ProduccionServiceInterface
         $hoy = Carbon::today();
 
         return Produccion::whereDate('created_at', $hoy)
-            ->with('maquina')
+            ->with('maquina.tipo')
             ->selectRaw('maquina_id, SUM(cantidad_producida_kg) as total_kg, COUNT(*) as producciones, AVG(oee_actual) as oee_promedio')
             ->groupBy('maquina_id')
             ->get()
             ->map(function ($item) {
                 return [
-                    'maquina' => $item->maquina,
+                    'maquina' => [
+                        'id' => $item->maquina->id,
+                        'nombre' => $item->maquina->nombre,
+                        'codigo' => $item->maquina->codigo,
+                        'tipo' => $item->maquina->tipo?->nombre,
+                    ],
                     'total_kg' => $item->total_kg,
                     'producciones' => $item->producciones,
                     'oee_promedio' => round($item->oee_promedio, 2),

@@ -6,8 +6,11 @@ use App\Http\Controllers\Planta\MonitorMaquinaController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect('/dashboard');
+    return redirect('/welcome');
 });
+
+Route::get('/welcome', [App\Http\Controllers\WelcomeController::class, 'index'])
+    ->name('welcome');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
@@ -21,6 +24,3 @@ Route::get('/planta/monitor-maquina', [MonitorMaquinaController::class, 'index']
 
 Route::get('/planta/monitor-maquina/{maquina}', [MonitorMaquinaController::class, 'show'])
     ->name('planta.monitor-maquina.show');
-
-Route::get('/planta/monitor-maquina/{maquina}/preview', [MonitorMaquinaController::class, 'preview'])
-    ->name('planta.monitor-maquina.preview');

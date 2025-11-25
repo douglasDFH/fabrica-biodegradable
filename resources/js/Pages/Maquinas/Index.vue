@@ -1,6 +1,7 @@
 <template>
+  <MainLayout>
+    <Head title="Gestión de Máquinas" />
     <div class="container mx-auto px-4 py-8">
-        <Head title="Gestión de Máquinas" />
 
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold">Gestión de Máquinas</h1>
@@ -60,10 +61,12 @@
             </table>
         </div>
     </div>
+  </MainLayout>
 </template>
 
 <script setup>
 import { Head, router } from '@inertiajs/vue3';
+import MainLayout from '../../Layouts/MainLayout.vue';
 
 const props = defineProps({
     maquinas: Array,

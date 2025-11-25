@@ -123,7 +123,7 @@
                             CONTROL DE ESTADO
                         </div>
 
-                        <div class="flex-1 flex flex-col gap-3 justify-center">
+                        <div class="flex flex-col gap-3">
                             <button
                                 v-for="estado in ['Produciendo', 'Pausada', 'Parada', 'Alarma', 'Mantenimiento', 'Offline']"
                                 :key="estado"
@@ -137,6 +137,35 @@
                             >
                                 {{ estado.toUpperCase() }}
                             </button>
+                        </div>
+
+                        <!-- Panel de Estadísticas -->
+                        <div class="bg-[#4A5A4D] border-4 border-gray-900 p-4 shadow-[inset_2px_2px_4px_rgba(0,0,0,0.3)] mt-auto">
+                            <div class="bg-[#6A7D6D] px-3 py-2 border-2 border-gray-900 text-white font-bold text-sm text-center mb-3">
+                                ESTADÍSTICAS DE SESIÓN
+                            </div>
+
+                            <div class="space-y-2 text-white font-mono text-sm">
+                                <div class="flex justify-between items-center bg-[#5A6A5D] border-2 border-gray-900 px-3 py-2 rounded">
+                                    <span class="text-gray-300">Cola:</span>
+                                    <span class="font-bold text-yellow-300">{{ colaProduccion.length }} pendientes</span>
+                                </div>
+
+                                <div class="flex justify-between items-center bg-[#5A6A5D] border-2 border-gray-900 px-3 py-2 rounded">
+                                    <span class="text-gray-300">Generadas:</span>
+                                    <span class="font-bold text-green-300">{{ simulacion.stats.produccionesGeneradas }}</span>
+                                </div>
+
+                                <div class="flex justify-between items-center bg-[#5A6A5D] border-2 border-gray-900 px-3 py-2 rounded">
+                                    <span class="text-gray-300">Enviadas:</span>
+                                    <span class="font-bold text-blue-300">{{ simulacion.stats.produccionesEnviadas }}</span>
+                                </div>
+
+                                <div class="bg-[#5A6A5D] border-2 border-gray-900 px-3 py-2 rounded text-center">
+                                    <div class="text-xs text-gray-400 mb-1">Última actualización</div>
+                                    <div class="font-bold text-white">{{ ultimaActualizacion }}</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -608,7 +637,13 @@
 
                 <!-- Barra Inferior -->
                 <div class="bg-gray-700 p-2 flex items-center justify-between text-white text-sm">
-                    <div>Cola de producción: <span class="font-bold">{{ colaProduccion.length }}</span> pendientes</div>
+                    <div class="flex items-center gap-4">
+                        <span>Cola: <span class="font-bold">{{ colaProduccion.length }}</span> pendientes</span>
+                        <span class="text-gray-300">|</span>
+                        <span>Generadas: <span class="font-bold text-green-400">{{ simulacion.stats.produccionesGeneradas }}</span></span>
+                        <span class="text-gray-300">|</span>
+                        <span>Enviadas: <span class="font-bold text-blue-400">{{ simulacion.stats.produccionesEnviadas }}</span></span>
+                    </div>
                     <div>Última actualización: <span class="font-mono">{{ ultimaActualizacion }}</span></div>
                 </div>
             </div>
@@ -680,9 +715,13 @@ const simulacion = reactive({
         velocidadMin: 80,
         velocidadMax: 100,
     },
+    stats: {
+        produccionesGeneradas: 0,
+        produccionesEnviadas: 0,
+    },
 });
 
-const colaProduccion = ref([]);
+const colaProduccion = ref(JSON.parse(localStorage.getItem('colaProduccion') || '[]'));
 
 // Variables para widgets de la barra inferior
 const presionActual = ref(75); // Presión en bar (0-100)
@@ -748,8 +787,28 @@ const getEstadoColorBg = (estado) => {
     return colors[estado] || "bg-gray-600";
 };
 
+const guardarCola = () => {
+    localStorage.setItem('colaProduccion', JSON.stringify(colaProduccion.value));
+};
+
 const cambiarEstado = async (nuevoEstado) => {
     if (simulacion.estado === nuevoEstado) return;
+
+    // Si cambiamos a un estado de detención (Parada, Mantenimiento),
+    // enviamos un último registro para cerrar la producción
+    if (['Parada', 'Mantenimiento'].includes(nuevoEstado) && simulacion.estado === 'Produciendo') {
+        const ultimaProduccion = {
+            maquina_id: maquina.id,
+            kg_incremento: 0, // No incrementamos, solo cerramos
+            oee: simulacion.config.oeeMin,
+            velocidad: 0,
+            timestamp_generacion: Date.now(),
+            is_last_register: true,
+        };
+        colaProduccion.value.push(ultimaProduccion);
+        guardarCola();
+        if (isOnline.value) enviarProduccion(colaProduccion.value);
+    }
 
     simulacion.estado = nuevoEstado;
     tiempoInicioEstado.value = Date.now();
@@ -794,14 +853,37 @@ const simularProduccion = () => {
         timestamp_generacion: Date.now(),
     };
 
-    enviarProduccion([produccion]);
+    colaProduccion.value.push(produccion);
+    simulacion.stats.produccionesGeneradas++;
+    guardarCola();
+
+    if (isOnline.value) {
+        enviarProduccion(colaProduccion.value);
+    }
 };
 
 const enviarProduccion = async (producciones) => {
+    if (producciones.length === 0) return;
+
+    const produccionesParaEnviar = [...producciones];
+
     try {
-        console.log('Enviando producciones:', producciones);
-        const response = await axios.post("/api/simular-produccion", { producciones });
+        console.log('Enviando producciones:', produccionesParaEnviar);
+        const response = await axios.post("/api/simular-produccion", { producciones: produccionesParaEnviar });
         console.log('Respuesta del servidor:', response.data);
+
+        if (response.data.success) {
+            simulacion.stats.produccionesEnviadas += produccionesParaEnviar.length;
+
+            // Remover las producciones enviadas de la cola
+            const timestampsEnviados = produccionesParaEnviar.map(p => p.timestamp_generacion);
+            colaProduccion.value = colaProduccion.value.filter(
+                p => !timestampsEnviados.includes(p.timestamp_generacion)
+            );
+
+            guardarCola();
+        }
+
         ultimaActualizacion.value = new Date().toLocaleTimeString('es-ES');
     } catch (error) {
         console.error("Error enviando producción:", error);
@@ -965,8 +1047,13 @@ onMounted(() => {
         tiempoActual.value = Date.now();
     }, 1000);
 
-    window.addEventListener("online", () => { isOnline.value = true; });
-    window.addEventListener("offline", () => { isOnline.value = false; });
+    window.addEventListener("online", () => {
+        isOnline.value = true;
+        enviarProduccion(colaProduccion.value);
+    });
+    window.addEventListener("offline", () => {
+        isOnline.value = false;
+    });
 
     // Iniciar animaciones para máquina 2 (HMI)
     if (maquina.id === 2) {

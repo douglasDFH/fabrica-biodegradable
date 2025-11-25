@@ -44,18 +44,6 @@ class MonitorMaquinaController extends Controller
     {
         $maquina->load('tipo', 'estadoVivo');
 
-        return Inertia::render('Planta/MonitorMaquinaShow', [
-            'maquina' => $maquina,
-        ]);
-    }
-
-    /**
-     * Preview new design for the specified resource.
-     */
-    public function preview(Maquina $maquina)
-    {
-        $maquina->load('tipo', 'estadoVivo');
-
         return Inertia::render('Planta/MonitorMaquinaShow_NEW', [
             'maquina' => $maquina,
         ]);

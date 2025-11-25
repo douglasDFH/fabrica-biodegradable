@@ -1,6 +1,7 @@
 <template>
+  <MainLayout>
+    <Head title="Nueva Máquina" />
     <div class="container mx-auto px-4 py-8 max-w-4xl">
-        <Head title="Nueva Máquina" />
 
         <div class="mb-6">
             <h1 class="text-3xl font-bold">Nueva Máquina</h1>
@@ -119,11 +120,13 @@
             </div>
         </form>
     </div>
+  </MainLayout>
 </template>
 
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import MainLayout from '../../Layouts/MainLayout.vue';
 
 const props = defineProps({
     tipos: Array,

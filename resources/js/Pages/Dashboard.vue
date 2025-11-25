@@ -1,7 +1,8 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-    <div class="py-8">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <MainLayout>
+    <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div class="py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="mb-8">
           <h1 class="text-4xl font-bold text-gray-900 mb-2">🏭 Dashboard de Producción</h1>
@@ -52,7 +53,7 @@
             <!-- Total KG -->
             <MetricCard
               title="Total KG Producidos"
-              :value="formatNumber(estadisticas.total_kg)"
+              :value="formatNumber(estadisticasLocal.total_kg)"
               border-class="border-green-500"
               icon-bg-class="bg-green-100"
             >
@@ -66,7 +67,7 @@
             <!-- Total Producciones -->
             <MetricCard
               title="Total Producciones"
-              :value="estadisticas.total_producciones || 0"
+              :value="estadisticasLocal.total_producciones || 0"
               border-class="border-blue-500"
               icon-bg-class="bg-blue-100"
             >
@@ -80,7 +81,7 @@
             <!-- Máquinas Activas -->
             <MetricCard
               title="Máquinas Activas"
-              :value="estadisticas.maquinas_activas || 0"
+              :value="estadisticasLocal.maquinas_activas || 0"
               border-class="border-purple-500"
               icon-bg-class="bg-purple-100"
             >
@@ -94,7 +95,7 @@
             <!-- OEE Promedio -->
             <MetricCard
               title="OEE Promedio"
-              :value="formatOEE(estadisticas.oee_promedio)"
+              :value="formatOEE(estadisticasLocal.oee_promedio)"
               border-class="border-yellow-500"
               icon-bg-class="bg-yellow-100"
             >
@@ -107,50 +108,81 @@
           </div>
 
           <!-- Producción por Máquina -->
-          <ProductionByMachine :produccion-por-maquina="produccionPorMaquina" />
+          <ProductionByMachine :produccion-por-maquina="produccionPorMaquinaLocal" />
 
           <!-- Estados de Máquinas en Tiempo Real -->
-          <MachineStates :estados-maquinas="estadosMaquinas" />
+          <MachineStates :estados-maquinas="estadosMaquinasLocal" />
+        </div>
         </div>
       </div>
     </div>
-  </div>
+  </MainLayout>
 </template>
 
 <script>
+import MainLayout from '../Layouts/MainLayout.vue';
 import MetricCard from '../Components/MetricCard.vue';
 import ProductionByMachine from '../Components/ProductionByMachine.vue';
 import MachineStates from '../Components/MachineStates.vue';
 
 export default {
   components: {
+    MainLayout,
     MetricCard,
     ProductionByMachine,
     MachineStates
   },
 
-  data() {
-    return {
-      loading: true,
-      error: null,
-      wsConnected: false,
-      ultimaActualizacion: 'Esperando datos...',
-      
-      // Datos del dashboard
-      estadisticas: {
+  props: {
+    estadisticas: {
+      type: Object,
+      default: () => ({
         total_kg: 0,
         total_producciones: 0,
         maquinas_activas: 0,
         oee_promedio: 0
-      },
-      produccionPorMaquina: [],
-      estadosMaquinas: [],
-      
+      })
+    },
+    produccionPorMaquina: {
+      type: Array,
+      default: () => []
+    },
+    estadosMaquinas: {
+      type: Array,
+      default: () => []
+    }
+  },
+
+  data() {
+    return {
+      loading: false,
+      error: null,
+      wsConnected: false,
+      ultimaActualizacion: new Date().toLocaleString('es-ES'),
+
+      // Datos del dashboard (se inicializarán en created)
+      estadisticasLocal: {},
+      produccionPorMaquinaLocal: [],
+      estadosMaquinasLocal: [],
+
       // Referencias de Echo
       dashboardChannel: null,
       reconnectAttempts: 0,
       maxReconnectAttempts: 5
     }
+  },
+
+  created() {
+    // Inicializar con props (aquí ya están disponibles)
+    this.estadisticasLocal = { ...this.estadisticas };
+    this.produccionPorMaquinaLocal = [...this.produccionPorMaquina];
+    this.estadosMaquinasLocal = [...this.estadosMaquinas];
+
+    console.log('Dashboard created - Datos iniciales:', {
+      estadisticas: this.estadisticasLocal,
+      produccionPorMaquina: this.produccionPorMaquinaLocal,
+      estadosMaquinas: this.estadosMaquinasLocal
+    });
   },
 
   mounted() {
@@ -243,12 +275,12 @@ export default {
       try {
         // Actualizar estadísticas si vienen en el evento
         if (data.estadisticas) {
-          this.estadisticas = { ...data.estadisticas };
+          this.estadisticasLocal = { ...data.estadisticas };
         }
 
         // Actualizar producción por máquina si viene en el evento
         if (data.produccionPorMaquina) {
-          this.produccionPorMaquina = [...data.produccionPorMaquina];
+          this.produccionPorMaquinaLocal = [...data.produccionPorMaquina];
         }
 
         // Actualizar estado de máquina si viene en el evento
@@ -258,7 +290,7 @@ export default {
 
         // Actualizar timestamp
         this.ultimaActualizacion = new Date().toLocaleString('es-ES');
-        
+
       } catch (error) {
         console.error('Error procesando evento de producción:', error);
       }
@@ -268,12 +300,12 @@ export default {
       try {
         // Actualizar estadísticas si vienen en el evento
         if (data.estadisticas) {
-          this.estadisticas = { ...data.estadisticas };
+          this.estadisticasLocal = { ...data.estadisticas };
         }
 
         // Actualizar producción por máquina si viene en el evento
         if (data.produccionPorMaquina) {
-          this.produccionPorMaquina = [...data.produccionPorMaquina];
+          this.produccionPorMaquinaLocal = [...data.produccionPorMaquina];
         }
 
         // Actualizar estado de máquina
@@ -283,23 +315,23 @@ export default {
 
         // Actualizar timestamp
         this.ultimaActualizacion = new Date().toLocaleString('es-ES');
-        
+
       } catch (error) {
         console.error('Error procesando evento de máquina:', error);
       }
     },
 
     actualizarEstadoMaquina(nuevoEstado) {
-      const index = this.estadosMaquinas.findIndex(
+      const index = this.estadosMaquinasLocal.findIndex(
         e => e.maquina_id === nuevoEstado.maquina_id
       );
 
       if (index !== -1) {
         // Actualizar existente usando Object.assign para mantener reactividad
-        Object.assign(this.estadosMaquinas[index], nuevoEstado);
+        Object.assign(this.estadosMaquinasLocal[index], nuevoEstado);
       } else {
         // Agregar nuevo estado de máquina
-        this.estadosMaquinas.push(nuevoEstado);
+        this.estadosMaquinasLocal.push(nuevoEstado);
       }
     },
 

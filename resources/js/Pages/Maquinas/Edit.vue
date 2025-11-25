@@ -1,6 +1,7 @@
 <template>
+  <MainLayout>
+    <Head title="Editar Máquina" />
     <div class="container mx-auto px-4 py-8 max-w-4xl">
-        <Head title="Editar Máquina" />
 
         <div class="mb-6">
             <h1 class="text-3xl font-bold">Editar Máquina</h1>
@@ -127,11 +128,13 @@
             </div>
         </form>
     </div>
+  </MainLayout>
 </template>
 
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import MainLayout from '../../Layouts/MainLayout.vue';
 
 const props = defineProps({
     maquina: Object,
